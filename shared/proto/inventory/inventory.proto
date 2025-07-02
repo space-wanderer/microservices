@@ -25,7 +25,7 @@ message GetPartResponse {
 }
 
 message ListPartsRequest {
-    PartFilter filter = 1;
+    PartsFilter filter = 1;
 }
 
 message ListPartsResponse {
@@ -75,4 +75,12 @@ message Value {
         double double_value	= 3; //	Дробное значение
         bool bool_value	= 4;    //	Логическое значение   
     }
+}
+
+message PartsFilter {
+    repeated string uuids = 1;                     // Список UUID'ов. Пусто — не фильтруем по UUID
+    repeated string names = 2;                     // Список имён. Пусто — не фильтруем по имени
+    repeated Category categories	= 3;           // Список категорий. Пусто — не фильтруем по категории
+    repeated string manufacturer_countries	= 4;   // Список стран производителей. Пусто — не фильтруем по стране
+    repeated string tags	= 5;                   // Список тегов. Пусто — не фильтруем по тегам
 }
