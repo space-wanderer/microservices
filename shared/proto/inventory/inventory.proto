@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package inventory.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1;inventory_v1";
+
+service InventoryService {
+  // GetPart - получить информацию о детали
+  rpc GetPart(GetPartRequest) returns (GetPartResponse);
+  
+  // ListParts - получить список деталей с возможностью фильтрации
+  rpc ListParts(ListPartsRequest) returns (ListPartsResponse);
+}
+
+message GetPartRequest {
+    string uuid = 1;
+}
+
+message GetPartResponse {
+    Part part =  1;
+}
+
+message ListPartsRequest {
+    PartFilter filter = 1;
+}
+
+message ListPartsResponse {
+    repeated Part parts = 1;
+}
+
+message Part {
+    string uuid = 1; 
+    string name = 2;
+    string description = 3;
+    double price = 4;
+    int64 stock_quantity = 5;
+    Category category = 6;
+    Dimensions dimensions = 7;
+    Manufacturer manufacturer = 8;
+    repeated string tags = 9;
+    map<string, Value> vetadata = 10;
+    google.protobuf.Timestamp created_at = 11;
+    google.protobuf.Timestamp updated_at = 12;
+}
+
+enum Category {
+    UNKNOWN = 0;   // Неизвестная категория
+    ENGINE = 1;	   // Двигатель
+    FUEL = 2;      // Топливо
+    PORTHOLE = 3;  // Иллюминатор
+    WING = 4;      // Крыло
+}
+
+message Dimensions {
+    double length	= 1; //	Длина в см
+    double width = 2;    //	Ширина в см
+    double height = 3;   //	Высота в см
+    double weight	= 4; //	Вес в кг
+}
+
+message Manufacturer {
+    string name	= 1;     //	Название
+    string country	= 2; //	Страна производства
+    string website	= 3; //	Сайт производителя
+}
+
+message Value {
+    oneof value {
+        string string_value	= 1; //	Строковое значение
+        int64 int64_value	= 2; //	Целое значение
+        double double_value	= 3; //	Дробное значение
+        bool bool_value	= 4;    //	Логическое значение   
+    }
+}
