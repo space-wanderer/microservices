@@ -3,8 +3,6 @@ syntax = "proto3";
 package inventory.v1;
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/wrappers.proto";
-import "google/protobuf/empty.proto";
 
 option go_package = "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1;inventory_v1";
 
@@ -16,22 +14,27 @@ service InventoryService {
   rpc ListParts(ListPartsRequest) returns (ListPartsResponse);
 }
 
+// GetPartRequest - получение детали по UUID
 message GetPartRequest {
     string uuid = 1;
 }
 
+// GetPartResponse - ответ с информацией о детали
 message GetPartResponse {
     Part part =  1;
 }
 
+// ListPartsRequest - запрос на получение списка деталей
 message ListPartsRequest {
     PartsFilter filter = 1;
 }
 
+// ListPartsResponse - ответ со списком деталей
 message ListPartsResponse {
     repeated Part parts = 1;
 }
 
+// Part - информация о деталях
 message Part {
     string uuid = 1; 
     string name = 2;
@@ -47,14 +50,15 @@ message Part {
     google.protobuf.Timestamp updated_at = 12;
 }
 
+//Category - Категории
 enum Category {
-    UNKNOWN = 0;   // Неизвестная категория
-    ENGINE = 1;	   // Двигатель
-    FUEL = 2;      // Топливо
-    PORTHOLE = 3;  // Иллюминатор
-    WING = 4;      // Крыло
+    CATEGORY_UNSPECIFIED = 0;   // Неизвестная категория
+    CATEGORY_ENGINE = 1;    // Двигатель
+    CATEGORY_FUEL = 2;      // Топливо
+    CATEGORY_PORTHOLE = 3;  // Иллюминатор
+    CATEGORY_WING = 4;      // Крыло
 }
-
+// Dimensions - размеры и вес деталией 
 message Dimensions {
     double length	= 1; //	Длина в см
     double width = 2;    //	Ширина в см
@@ -62,12 +66,14 @@ message Dimensions {
     double weight	= 4; //	Вес в кг
 }
 
+// Manufacturer - производители
 message Manufacturer {
     string name	= 1;     //	Название
     string country	= 2; //	Страна производства
     string website	= 3; //	Сайт производителя
 }
 
+// Value
 message Value {
     oneof value {
         string string_value	= 1; //	Строковое значение
@@ -77,6 +83,7 @@ message Value {
     }
 }
 
+// PartsFilter - фильтр поиск деталей
 message PartsFilter {
     repeated string uuids = 1;                     // Список UUID'ов. Пусто — не фильтруем по UUID
     repeated string names = 2;                     // Список имён. Пусто — не фильтруем по имени
