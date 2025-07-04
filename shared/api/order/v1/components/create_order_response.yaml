@@ -9,7 +9,7 @@ properties:
     description: UUID заказа
     example: "123e4567-e89b-12d3-a456-426614174000"
   total_price:
-    type: float
+    type: number
     format: float
     description: Общая стоимость заказа
     example: 123.45

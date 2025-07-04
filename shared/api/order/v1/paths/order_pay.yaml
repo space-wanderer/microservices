@@ -56,3 +56,9 @@ post:
         application/json:
           schema:
             $ref: ../components/errors/service_unavailable_error.yaml
+    "default":
+      description: Неизвестная ошибка
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/generic_error.yaml

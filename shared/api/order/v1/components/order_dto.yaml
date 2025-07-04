@@ -19,7 +19,7 @@ properties:
       example: "456e7890-abcd-12ef-3456-789abcdef012"
     example: ["456e7890-abcd-12ef-3456-789abcdef012", "789f1234-cdef-34gh-5678-901abcdef234"]
   total_price:
-    type: float
+    type: number
     format: float
     description: Общая стоимость заказа
     example: 123.45

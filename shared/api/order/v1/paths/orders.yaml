@@ -1,5 +1,3 @@
-
-
 post:
   operationId: createOrder
   summary: Создать заказ
@@ -72,4 +70,4 @@ post:
       content:
         application/json:
           schema:
-            $ref: ../components/errors/general_error.yaml
+            $ref: ../components/errors/generic_error.yaml

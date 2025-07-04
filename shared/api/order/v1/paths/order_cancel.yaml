@@ -52,4 +52,10 @@ post:
         application/json:
           schema:
             $ref: ../components/errors/rate_limit_error.yaml
+    "default":
+      description: Неизвестная ошибка
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/generic_error.yaml
 
