@@ -1,0 +1,27 @@
+type: object
+properties:
+  error:
+    type: string
+    description: Тип ошибки
+    example: "BadGateway"
+  message:
+    type: string
+    description: Сообщение об ошибке
+    example: "Ошибка шлюза"
+  upstream_service:
+    type: string
+    description: Название вышестоящего сервиса
+    example: "InventoryService"
+  request_id:
+    type: string
+    description: Уникальный идентификатор запроса
+    example: "req_1234567890abcdef"
+  timestamp:
+    type: string
+    format: date-time
+    description: Время возникновения ошибки
+    example: "2024-01-15T10:30:00Z"
+required:
+  - error
+  - message
+  - timestamp

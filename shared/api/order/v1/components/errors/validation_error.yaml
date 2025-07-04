@@ -1,0 +1,14 @@
+type: object
+required:
+  - code
+  - message
+properties:
+  code:
+    type: integer
+    description: HTTP-код ошибки
+    example: 422
+  message:
+    type: string
+    description: Сообщение об ошибке
+    example: "Ошибка валидации данных"
+  

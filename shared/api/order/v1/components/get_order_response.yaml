@@ -1,0 +1,10 @@
+type: object
+properties:
+  order:
+    $ref: ./order_dto.yaml
+  message:
+    type: string
+    description: Сообщение о результате операции
+    example: "Заказ успешно получен"
+required:
+  - order

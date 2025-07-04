@@ -1,0 +1,27 @@
+type: object
+properties:
+  error:
+    type: string
+    description: Тип ошибки
+    example: "ServiceUnavailable"
+  message:
+    type: string
+    description: Сообщение об ошибке
+    example: "Сервис временно недоступен"
+  retry_after:
+    type: integer
+    description: Время в секундах до повтора запроса
+    example: 30
+  service:
+    type: string
+    description: Название недоступного сервиса
+    example: "PaymentService"
+  timestamp:
+    type: string
+    format: date-time
+    description: Время возникновения ошибки
+    example: "2024-01-15T10:30:00Z"
+required:
+  - error
+  - message
+  - timestamp
