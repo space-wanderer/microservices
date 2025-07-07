@@ -7,21 +7,19 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
 	"github.com/google/uuid"
-	paymentV1 "github.com/space-wanderer/microservices/shared/pkg/proto/payment/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	paymentV1 "github.com/space-wanderer/microservices/shared/pkg/proto/payment/v1"
 )
 
 const grpsPort = 50052
 
 type paymentService struct {
 	paymentV1.UnimplementedPaymentServiceServer
-
-	mu sync.RWMutex
 }
 
 func (s *paymentService) PayOrder(ctx context.Context, req *paymentV1.PayOrderRequest) (*paymentV1.PayOrderResponse, error) {
@@ -29,7 +27,7 @@ func (s *paymentService) PayOrder(ctx context.Context, req *paymentV1.PayOrderRe
 		TransactionUuid: uuid.New().String(),
 	}
 
-	log.Printf("Оплата прошла успешно, transaction_uuid: %s, transaction_uuid: %s", transaction.TransactionUuid)
+	log.Printf("Оплата прошла успешно, transaction_uuid: %s", transaction.TransactionUuid)
 
 	return transaction, nil
 }
@@ -54,7 +52,7 @@ func main() {
 	reflection.Register(s)
 
 	go func() {
-		log.Printf("gRPS payment listening on %s", grpsPort)
+		log.Printf("gRPS payment listening on %d", grpsPort)
 		err := s.Serve(lis)
 		if err != nil {
 			log.Fatalf("failed to serve: %v", err)

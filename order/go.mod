@@ -1,5 +1,10 @@
-module order
+module github.com/space-wanderer/microservices/order
 
 go 1.24.4
 
 replace github.com/space-wanderer/microservices/shared => ../shared
+
+require (
+	github.com/go-chi/chi/v5 v5.2.2
+	github.com/google/uuid v1.6.0
+)
