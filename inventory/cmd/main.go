@@ -22,68 +22,154 @@ import (
 
 const grpsPort = 50051
 
-type inventoryService struct {
-	inventoryV1.UnimplementedInventoryServiceServer
+type Part struct {
+	Uuid          string
+	Name          string
+	Description   string
+	Price         float64
+	StockQuantity int32
+	Category      inventoryV1.Category
+	Dimensions    *inventoryV1.Dimensions
+	Manufacturer  *inventoryV1.Manufacturer
+	Tags          []string
+	CreatedAt     *timestamppb.Timestamp
+	UpdatedAt     *timestamppb.Timestamp
+}
 
+type Filter struct {
+	Uuids                 []string
+	Names                 []string
+	Categories            []inventoryV1.Category
+	ManufacturerCountries []string
+	Tags                  []string
+}
+
+type InventoryStorage interface {
+	Part(uuid string) (*Part, error)
+	Parts(filter *Filter) ([]*Part, error)
+}
+
+type InventoryStorageInMem struct {
 	mu    sync.RWMutex
-	parts map[string]*inventoryV1.Part
+	parts map[string]*Part
 }
 
-func (s *inventoryService) GetPart(ctx context.Context, req *inventoryV1.GetPartRequest) (*inventoryV1.GetPartResponse, error) {
+// Part - реализация метода интерфейса для получения детали по UUID
+func (s *InventoryStorageInMem) Part(uuid string) (*Part, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	part, ok := s.parts[req.GetUuid()]
+	part, ok := s.parts[uuid]
 	if !ok {
-		return nil, status.Errorf(codes.NotFound, "NotFound: %s", req.GetUuid())
+		return nil, fmt.Errorf("part not found: %s", uuid)
 	}
-	return &inventoryV1.GetPartResponse{
-		Part: part,
-	}, nil
+	return part, nil
 }
 
-func (s *inventoryService) ListParts(ctx context.Context, req *inventoryV1.ListPartsRequest) (*inventoryV1.ListPartsResponse, error) {
+// Parts - реализация метода интерфейса для получения списка деталей с фильтрацией
+func (s *InventoryStorageInMem) Parts(filter *Filter) ([]*Part, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// Если фильтр не указан или все поля пусты - возвращаем все детали
-	if req.GetFilter() == nil || isEmptyFilter(req.GetFilter()) {
-		parts := make([]*inventoryV1.Part, 0, len(s.parts))
+	if filter == nil || isEmptyFilter(filter) {
+		parts := make([]*Part, 0, len(s.parts))
 		for _, part := range s.parts {
 			parts = append(parts, part)
 		}
-		return &inventoryV1.ListPartsResponse{Parts: parts}, nil
+		return parts, nil
 	}
 
-	filter := req.GetFilter()
-	var filteredParts []*inventoryV1.Part
+	var filteredParts []*Part
 
-	// Проходим по всем деталям и применяем фильтры
 	for _, part := range s.parts {
 		if matchesFilter(part, filter) {
 			filteredParts = append(filteredParts, part)
 		}
 	}
 
-	return &inventoryV1.ListPartsResponse{Parts: filteredParts}, nil
+	return filteredParts, nil
+}
+
+type inventoryService struct {
+	inventoryV1.UnimplementedInventoryServiceServer
+	storage InventoryStorage
+}
+
+func (s *inventoryService) GetPart(ctx context.Context, req *inventoryV1.GetPartRequest) (*inventoryV1.GetPartResponse, error) {
+	part, err := s.storage.Part(req.GetUuid())
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "NotFound: %s", req.GetUuid())
+	}
+
+	grpcPart := convertPartToGRPC(part)
+	return &inventoryV1.GetPartResponse{
+		Part: grpcPart,
+	}, nil
+}
+
+func (s *inventoryService) ListParts(ctx context.Context, req *inventoryV1.ListPartsRequest) (*inventoryV1.ListPartsResponse, error) {
+	filter := convertFilterFromGRPC(req.GetFilter())
+
+	parts, err := s.storage.Parts(filter)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Failed to get parts: %v", err)
+	}
+
+	grpcParts := make([]*inventoryV1.Part, len(parts))
+	for i, part := range parts {
+		grpcParts[i] = convertPartToGRPC(part)
+	}
+
+	return &inventoryV1.ListPartsResponse{Parts: grpcParts}, nil
+}
+
+// convertPartToGRPC - конвертация внутренней модели Part в gRPC модель
+func convertPartToGRPC(part *Part) *inventoryV1.Part {
+	return &inventoryV1.Part{
+		Uuid:          part.Uuid,
+		Name:          part.Name,
+		Description:   part.Description,
+		Price:         part.Price,
+		StockQuantity: int64(part.StockQuantity),
+		Category:      part.Category,
+		Dimensions:    part.Dimensions,
+		Manufacturer:  part.Manufacturer,
+		Tags:          part.Tags,
+		CreatedAt:     part.CreatedAt,
+		UpdatedAt:     part.UpdatedAt,
+	}
+}
+
+// convertFilterFromGRPC - конвертация gRPC фильтра во внутренний фильтр
+func convertFilterFromGRPC(grpcFilter *inventoryV1.PartsFilter) *Filter {
+	if grpcFilter == nil {
+		return &Filter{}
+	}
+	return &Filter{
+		Uuids:                 grpcFilter.GetUuids(),
+		Names:                 grpcFilter.GetNames(),
+		Categories:            grpcFilter.GetCategories(),
+		ManufacturerCountries: grpcFilter.GetManufacturerCountries(),
+		Tags:                  grpcFilter.GetTags(),
+	}
 }
 
 // isEmptyFilter проверяет, пуст ли фильтр
-func isEmptyFilter(filter *inventoryV1.PartsFilter) bool {
-	return len(filter.GetUuids()) == 0 &&
-		len(filter.GetNames()) == 0 &&
-		len(filter.GetCategories()) == 0 &&
-		len(filter.GetManufacturerCountries()) == 0 &&
-		len(filter.GetTags()) == 0
+func isEmptyFilter(filter *Filter) bool {
+	return len(filter.Uuids) == 0 &&
+		len(filter.Names) == 0 &&
+		len(filter.Categories) == 0 &&
+		len(filter.ManufacturerCountries) == 0 &&
+		len(filter.Tags) == 0
 }
 
 // matchesUuidFilter проверяет соответствие UUID
-func matchesUuidFilter(part *inventoryV1.Part, uuids []string) bool {
+func matchesUuidFilter(part *Part, uuids []string) bool {
 	if len(uuids) == 0 {
 		return true
 	}
 	for _, uuid := range uuids {
-		if part.GetUuid() == uuid {
+		if part.Uuid == uuid {
 			return true
 		}
 	}
@@ -91,12 +177,12 @@ func matchesUuidFilter(part *inventoryV1.Part, uuids []string) bool {
 }
 
 // matchesNameFilter проверяет соответствие имени
-func matchesNameFilter(part *inventoryV1.Part, names []string) bool {
+func matchesNameFilter(part *Part, names []string) bool {
 	if len(names) == 0 {
 		return true
 	}
 	for _, name := range names {
-		if part.GetName() == name {
+		if part.Name == name {
 			return true
 		}
 	}
@@ -104,12 +190,12 @@ func matchesNameFilter(part *inventoryV1.Part, names []string) bool {
 }
 
 // matchesCategoryFilter проверяет соответствие категории
-func matchesCategoryFilter(part *inventoryV1.Part, categories []inventoryV1.Category) bool {
+func matchesCategoryFilter(part *Part, categories []inventoryV1.Category) bool {
 	if len(categories) == 0 {
 		return true
 	}
 	for _, category := range categories {
-		if part.GetCategory() == category {
+		if part.Category == category {
 			return true
 		}
 	}
@@ -117,15 +203,15 @@ func matchesCategoryFilter(part *inventoryV1.Part, categories []inventoryV1.Cate
 }
 
 // matchesCountryFilter проверяет соответствие страны производителя
-func matchesCountryFilter(part *inventoryV1.Part, countries []string) bool {
+func matchesCountryFilter(part *Part, countries []string) bool {
 	if len(countries) == 0 {
 		return true
 	}
-	if part.GetManufacturer() == nil {
+	if part.Manufacturer == nil {
 		return false
 	}
 	for _, country := range countries {
-		if part.GetManufacturer().GetCountry() == country {
+		if part.Manufacturer.GetCountry() == country {
 			return true
 		}
 	}
@@ -133,12 +219,12 @@ func matchesCountryFilter(part *inventoryV1.Part, countries []string) bool {
 }
 
 // matchesTagFilter проверяет соответствие тегов
-func matchesTagFilter(part *inventoryV1.Part, tags []string) bool {
+func matchesTagFilter(part *Part, tags []string) bool {
 	if len(tags) == 0 {
 		return true
 	}
 	for _, filterTag := range tags {
-		for _, partTag := range part.GetTags() {
+		for _, partTag := range part.Tags {
 			if partTag == filterTag {
 				return true
 			}
@@ -148,20 +234,20 @@ func matchesTagFilter(part *inventoryV1.Part, tags []string) bool {
 }
 
 // matchesFilter проверяет, соответствует ли деталь всем условиям фильтра
-func matchesFilter(part *inventoryV1.Part, filter *inventoryV1.PartsFilter) bool {
-	return matchesUuidFilter(part, filter.GetUuids()) &&
-		matchesNameFilter(part, filter.GetNames()) &&
-		matchesCategoryFilter(part, filter.GetCategories()) &&
-		matchesCountryFilter(part, filter.GetManufacturerCountries()) &&
-		matchesTagFilter(part, filter.GetTags())
+func matchesFilter(part *Part, filter *Filter) bool {
+	return matchesUuidFilter(part, filter.Uuids) &&
+		matchesNameFilter(part, filter.Names) &&
+		matchesCategoryFilter(part, filter.Categories) &&
+		matchesCountryFilter(part, filter.ManufacturerCountries) &&
+		matchesTagFilter(part, filter.Tags)
 }
 
 // createSampleParts создает список деталей для тестирования
-func createSampleParts() map[string]*inventoryV1.Part {
-	parts := make(map[string]*inventoryV1.Part)
+func createSampleParts() map[string]*Part {
+	parts := make(map[string]*Part)
 
 	// Двигатели
-	parts["550e8400-e29b-41d4-a716-446655440001"] = &inventoryV1.Part{
+	parts["550e8400-e29b-41d4-a716-446655440001"] = &Part{
 		Uuid:          "550e8400-e29b-41d4-a716-446655440001",
 		Name:          "Ионный двигатель X-2000",
 		Description:   "Высокоэффективный ионный двигатель для межпланетных полетов",
@@ -184,7 +270,7 @@ func createSampleParts() map[string]*inventoryV1.Part {
 		UpdatedAt: timestamppb.New(time.Now()),
 	}
 
-	parts["550e8400-e29b-41d4-a716-446655440002"] = &inventoryV1.Part{
+	parts["550e8400-e29b-41d4-a716-446655440002"] = &Part{
 		Uuid:          "550e8400-e29b-41d4-a716-446655440002",
 		Name:          "Плазменный двигатель P-500",
 		Description:   "Мощный плазменный двигатель для тяжелых грузов",
@@ -208,7 +294,7 @@ func createSampleParts() map[string]*inventoryV1.Part {
 	}
 
 	// Топливо
-	parts["550e8400-e29b-41d4-a716-446655440003"] = &inventoryV1.Part{
+	parts["550e8400-e29b-41d4-a716-446655440003"] = &Part{
 		Uuid:          "550e8400-e29b-41d4-a716-446655440003",
 		Name:          "Криогенное топливо H2-O2",
 		Description:   "Высокоэнергетическое криогенное топливо для ракетных двигателей",
@@ -231,7 +317,7 @@ func createSampleParts() map[string]*inventoryV1.Part {
 		UpdatedAt: timestamppb.New(time.Now()),
 	}
 
-	parts["550e8400-e29b-41d4-a716-446655440004"] = &inventoryV1.Part{
+	parts["550e8400-e29b-41d4-a716-446655440004"] = &Part{
 		Uuid:          "550e8400-e29b-41d4-a716-446655440004",
 		Name:          "Ядерное топливо U-235",
 		Description:   "Обогащенный уран для ядерных реакторов",
@@ -255,7 +341,7 @@ func createSampleParts() map[string]*inventoryV1.Part {
 	}
 
 	// Иллюминаторы
-	parts["550e8400-e29b-41d4-a716-446655440005"] = &inventoryV1.Part{
+	parts["550e8400-e29b-41d4-a716-446655440005"] = &Part{
 		Uuid:          "550e8400-e29b-41d4-a716-446655440005",
 		Name:          "Кварцевое окно QW-100",
 		Description:   "Прозрачное кварцевое окно для космических кораблей",
@@ -278,7 +364,7 @@ func createSampleParts() map[string]*inventoryV1.Part {
 		UpdatedAt: timestamppb.New(time.Now()),
 	}
 
-	parts["550e8400-e29b-41d4-a716-446655440006"] = &inventoryV1.Part{
+	parts["550e8400-e29b-41d4-a716-446655440006"] = &Part{
 		Uuid:          "550e8400-e29b-41d4-a716-446655440006",
 		Name:          "Бронированное окно BW-200",
 		Description:   "Защищенное окно с многослойным покрытием",
@@ -302,7 +388,7 @@ func createSampleParts() map[string]*inventoryV1.Part {
 	}
 
 	// Крылья
-	parts["550e8400-e29b-41d4-a716-446655440007"] = &inventoryV1.Part{
+	parts["550e8400-e29b-41d4-a716-446655440007"] = &Part{
 		Uuid:          "550e8400-e29b-41d4-a716-446655440007",
 		Name:          "Солнечная панель SP-500",
 		Description:   "Высокоэффективная солнечная панель для космических станций",
@@ -325,7 +411,7 @@ func createSampleParts() map[string]*inventoryV1.Part {
 		UpdatedAt: timestamppb.New(time.Now()),
 	}
 
-	parts["550e8400-e29b-41d4-a716-446655440008"] = &inventoryV1.Part{
+	parts["550e8400-e29b-41d4-a716-446655440008"] = &Part{
 		Uuid:          "550e8400-e29b-41d4-a716-446655440008",
 		Name:          "Аэродинамическое крыло AW-300",
 		Description:   "Легкое аэродинамическое крыло для атмосферных полетов",
@@ -365,8 +451,14 @@ func main() {
 
 	s := grpc.NewServer()
 
-	service := &inventoryService{
+	// Создаем хранилище в памяти
+	storage := &InventoryStorageInMem{
 		parts: createSampleParts(),
+	}
+
+	// Создаем сервис с хранилищем через агрегацию
+	service := &inventoryService{
+		storage: storage,
 	}
 
 	inventoryV1.RegisterInventoryServiceServer(s, service)

@@ -25,7 +25,7 @@ message PayOrderResponse {
 enum PaymentMethod {
     PAYMENT_METHOD_UNSPECIFIED = 0;    // Неизвестный способ
     PAYMENT_METHOD_CARD = 1;           // Банковская карта
-    PAYMENT_METHOD_SPB = 2;            // Система быстрых платежей
+    PAYMENT_METHOD_SBP = 2;            // Система быстрых платежей
     PAYMENT_METHOD_CREDIT_CARD = 3;    // Кредитная карта
     PAYMENT_METHOD_INVESTOR_MONEY = 4; // Деньги инвестора (внутренний метод)
 } 

@@ -270,7 +270,7 @@ type Part struct {
 	Dimensions    *Dimensions            `protobuf:"bytes,7,opt,name=dimensions,proto3" json:"dimensions,omitempty"`
 	Manufacturer  *Manufacturer          `protobuf:"bytes,8,opt,name=manufacturer,proto3" json:"manufacturer,omitempty"`
 	Tags          []string               `protobuf:"bytes,9,rep,name=tags,proto3" json:"tags,omitempty"`
-	Vetadata      map[string]*Value      `protobuf:"bytes,10,rep,name=vetadata,proto3" json:"vetadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Metadata      map[string]*Value      `protobuf:"bytes,10,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -370,9 +370,9 @@ func (x *Part) GetTags() []string {
 	return nil
 }
 
-func (x *Part) GetVetadata() map[string]*Value {
+func (x *Part) GetMetadata() map[string]*Value {
 	if x != nil {
-		return x.Vetadata
+		return x.Metadata
 	}
 	return nil
 }
@@ -738,13 +738,13 @@ const file_inventory_v1_inventory_proto_rawDesc = "" +
 	"dimensions\x12>\n" +
 	"\fmanufacturer\x18\b \x01(\v2\x1a.inventory.v1.ManufacturerR\fmanufacturer\x12\x12\n" +
 	"\x04tags\x18\t \x03(\tR\x04tags\x12<\n" +
-	"\bvetadata\x18\n" +
-	" \x03(\v2 .inventory.v1.Part.VetadataEntryR\bvetadata\x129\n" +
+	"\bmetadata\x18\n" +
+	" \x03(\v2 .inventory.v1.Part.MetadataEntryR\bmetadata\x129\n" +
 	"\n" +
 	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x1aP\n" +
-	"\rVetadataEntry\x12\x10\n" +
+	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12)\n" +
 	"\x05value\x18\x02 \x01(\v2\x13.inventory.v1.ValueR\x05value:\x028\x01\"j\n" +
 	"\n" +
@@ -808,7 +808,7 @@ var file_inventory_v1_inventory_proto_goTypes = []any{
 	(*Manufacturer)(nil),          // 7: inventory.v1.Manufacturer
 	(*Value)(nil),                 // 8: inventory.v1.Value
 	(*PartsFilter)(nil),           // 9: inventory.v1.PartsFilter
-	nil,                           // 10: inventory.v1.Part.VetadataEntry
+	nil,                           // 10: inventory.v1.Part.MetadataEntry
 	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
 }
 var file_inventory_v1_inventory_proto_depIdxs = []int32{
@@ -818,11 +818,11 @@ var file_inventory_v1_inventory_proto_depIdxs = []int32{
 	0,  // 3: inventory.v1.Part.category:type_name -> inventory.v1.Category
 	6,  // 4: inventory.v1.Part.dimensions:type_name -> inventory.v1.Dimensions
 	7,  // 5: inventory.v1.Part.manufacturer:type_name -> inventory.v1.Manufacturer
-	10, // 6: inventory.v1.Part.vetadata:type_name -> inventory.v1.Part.VetadataEntry
+	10, // 6: inventory.v1.Part.metadata:type_name -> inventory.v1.Part.MetadataEntry
 	11, // 7: inventory.v1.Part.created_at:type_name -> google.protobuf.Timestamp
 	11, // 8: inventory.v1.Part.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 9: inventory.v1.PartsFilter.categories:type_name -> inventory.v1.Category
-	8,  // 10: inventory.v1.Part.VetadataEntry.value:type_name -> inventory.v1.Value
+	8,  // 10: inventory.v1.Part.MetadataEntry.value:type_name -> inventory.v1.Value
 	1,  // 11: inventory.v1.InventoryService.GetPart:input_type -> inventory.v1.GetPartRequest
 	3,  // 12: inventory.v1.InventoryService.ListParts:input_type -> inventory.v1.ListPartsRequest
 	2,  // 13: inventory.v1.InventoryService.GetPart:output_type -> inventory.v1.GetPartResponse

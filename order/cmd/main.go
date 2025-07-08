@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -52,37 +53,15 @@ type OrderService struct {
 
 	inventoryClient inventory_v1.InventoryServiceClient
 	paymentClient   payment_v1.PaymentServiceClient
-
-	inventoryConn *grpc.ClientConn
-	paymentConn   *grpc.ClientConn
 }
 
-// NewOrderService создает новый сервис заказов с gRPC клиентами
-func NewOrderService() (*OrderService, error) {
-	inventoryConn, err := grpc.NewClient(inventoryServiceAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	paymentConn, err := grpc.NewClient(paymentServiceAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		if closeErr := inventoryConn.Close(); closeErr != nil {
-			log.Printf("Ошибка закрытия соединения с inventory: %v", closeErr)
-		}
-		return nil, err
-	}
-
+// NewOrderService создает новый сервис заказов с готовыми клиентами
+func NewOrderService(inventoryClient inventory_v1.InventoryServiceClient, paymentClient payment_v1.PaymentServiceClient) *OrderService {
 	return &OrderService{
 		orders:          make(map[uuid.UUID]*Order),
-		inventoryClient: inventory_v1.NewInventoryServiceClient(inventoryConn),
-		paymentClient:   payment_v1.NewPaymentServiceClient(paymentConn),
-		inventoryConn:   inventoryConn,
-		paymentConn:     paymentConn,
-	}, nil
+		inventoryClient: inventoryClient,
+		paymentClient:   paymentClient,
+	}
 }
 
 // CreateOrder создает новый заказ
@@ -120,19 +99,25 @@ func (s *OrderService) calculateOrderPrice(ctx context.Context, partUuids []uuid
 	var totalPrice float32
 
 	for _, partUUID := range partUuids {
-		req := &inventory_v1.GetPartRequest{
-			Uuid: partUUID.String(),
+		req := &inventory_v1.ListPartsRequest{
+			Filter: &inventory_v1.PartsFilter{
+				Uuids: []string{partUUID.String()},
+			},
 		}
 
 		ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 		defer cancel()
 
-		resp, err := s.inventoryClient.GetPart(ctx, req)
+		resp, err := s.inventoryClient.ListParts(ctx, req)
 		if err != nil {
 			return 0, err
 		}
 
-		totalPrice += float32(resp.Part.Price)
+		if len(resp.Parts) == 0 {
+			return 0, fmt.Errorf("part not found: %s", partUUID.String())
+		}
+
+		totalPrice += float32(resp.Parts[0].Price)
 	}
 
 	return totalPrice, nil
@@ -223,7 +208,7 @@ func (s *OrderService) processPayment(ctx context.Context, order *Order, payment
 	case order_v1.PaymentMethodCARD:
 		grpcPaymentMethod = payment_v1.PaymentMethod_PAYMENT_METHOD_CARD
 	case order_v1.PaymentMethodSBP:
-		grpcPaymentMethod = payment_v1.PaymentMethod_PAYMENT_METHOD_SPB
+		grpcPaymentMethod = payment_v1.PaymentMethod_PAYMENT_METHOD_SBP
 	case order_v1.PaymentMethodCREDITCARD:
 		grpcPaymentMethod = payment_v1.PaymentMethod_PAYMENT_METHOD_CREDIT_CARD
 	case order_v1.PaymentMethodINVESTORMONEY:
@@ -293,31 +278,52 @@ func (s *OrderService) NewError(ctx context.Context, err error) *order_v1.Generi
 	}
 }
 
-// Close закрывает gRPC соединения
+// Close закрывает gRPC соединения (теперь соединения управляются извне)
 func (s *OrderService) Close() {
-	log.Println("Закрытие gRPC соединений...")
-	if err := s.inventoryConn.Close(); err != nil {
-		log.Printf("Ошибка закрытия соединения с inventory: %v", err)
-	}
-	if err := s.paymentConn.Close(); err != nil {
-		log.Printf("Ошибка закрытия соединения с payment: %v", err)
-	}
+	log.Println("OrderService закрыт")
 }
 
 func main() {
-	// Создаем сервис заказов
-	orderService, err := NewOrderService()
+	// Создаем gRPC соединения
+	inventoryConn, err := grpc.NewClient(inventoryServiceAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
 	if err != nil {
-		log.Printf("❌ Ошибка создания сервиса заказов: %v", err)
-		os.Exit(1)
+		log.Printf("❌ Ошибка подключения к inventory service: %v", err)
+		return
 	}
+	defer func() {
+		if closeErr := inventoryConn.Close(); closeErr != nil {
+			log.Printf("❌ Ошибка закрытия соединения с inventory: %v", closeErr)
+		}
+	}()
+
+	paymentConn, err := grpc.NewClient(paymentServiceAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Printf("❌ Ошибка подключения к payment service: %v", err)
+		return
+	}
+	defer func() {
+		if closeErr := paymentConn.Close(); closeErr != nil {
+			log.Printf("❌ Ошибка закрытия соединения с payment: %v", closeErr)
+		}
+	}()
+
+	// Создаем клиенты
+	inventoryClient := inventory_v1.NewInventoryServiceClient(inventoryConn)
+	paymentClient := payment_v1.NewPaymentServiceClient(paymentConn)
+
+	// Создаем сервис заказов с готовыми клиентами
+	orderService := NewOrderService(inventoryClient, paymentClient)
 
 	// Создаем OpenAPI сервер
 	s, err := order_v1.NewServer(orderService)
 	if err != nil {
 		log.Printf("❌ Ошибка создания сервера: %v", err)
 		orderService.Close()
-		os.Exit(1)
+		return
 	}
 
 	// Инициализируем роутер Chi
