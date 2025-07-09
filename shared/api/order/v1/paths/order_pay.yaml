@@ -1,0 +1,64 @@
+parameters:
+  - $ref: ../params/order_uuid.yaml
+
+post:
+  operationId: payOrder
+  summary: Оплатить заказ
+  description: Оплачивает существующий заказ
+  tags:
+    - Order
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/pay_order_request.yaml
+  responses:
+    "200":
+      description: Заказ успешно оплачен
+      content:
+        application/json:
+          schema:
+            $ref: ../components/pay_order_response.yaml
+    "401":
+      description: Необходима авторизация
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/unauthorized_error.yaml
+    "403":
+      description: Доступ запрещен
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/forbidden_error.yaml
+    "404":
+      description: Заказ не найден
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/not_found_error.yaml
+    "429":
+      description: Превышен лимит запросов
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/rate_limit_error.yaml        
+    "502":
+      description: Ошибка шлюза
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/bad_gateway_error.yaml
+    "503":
+      description: Сервис временно недоступен
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/service_unavailable_error.yaml
+    "default":
+      description: Неизвестная ошибка
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/generic_error.yaml

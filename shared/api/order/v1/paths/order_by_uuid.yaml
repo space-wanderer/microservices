@@ -1,0 +1,58 @@
+parameters:
+  - $ref: ../params/order_uuid.yaml
+
+get:
+  operationId: getOrderByUuid
+  summary: Получить заказ
+  description: Получает заказ по его UUID
+  tags:
+    - Order
+  responses:
+    "200":
+      description: Заказ успешно получен
+      content:
+        application/json:
+          schema:
+            $ref: ../components/get_order_response.yaml
+    "404":
+      description: Заказ не найден
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/not_found_error.yaml
+    "502":
+      description: Ошибка шлюза
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/bad_gateway_error.yaml
+    "503":
+      description: Сервис временно недоступен
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/service_unavailable_error.yaml
+    "401":
+      description: Необходима авторизация
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/unauthorized_error.yaml
+    "403":
+      description: Доступ запрещен
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/forbidden_error.yaml
+    "429":
+      description: Превышен лимит запросов
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/rate_limit_error.yaml
+    "default":
+      description: Неизвестная ошибка
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/generic_error.yaml

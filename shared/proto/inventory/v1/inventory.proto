@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package inventory.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1;inventory_v1";
+
+service InventoryService {
+  // GetPart - получить информацию о детали
+  rpc GetPart(GetPartRequest) returns (GetPartResponse);
+  
+  // ListParts - получить список деталей с возможностью фильтрации
+  rpc ListParts(ListPartsRequest) returns (ListPartsResponse);
+}
+
+// GetPartRequest - получение детали по UUID
+message GetPartRequest {
+    string uuid = 1;
+}
+
+// GetPartResponse - ответ с информацией о детали
+message GetPartResponse {
+    Part part =  1;
+}
+
+// ListPartsRequest - запрос на получение списка деталей
+message ListPartsRequest {
+    PartsFilter filter = 1;
+}
+
+// ListPartsResponse - ответ со списком деталей
+message ListPartsResponse {
+    repeated Part parts = 1;
+}
+
+// Part - информация о деталях
+message Part {
+    string uuid = 1; 
+    string name = 2;
+    string description = 3;
+    double price = 4;
+    int64 stock_quantity = 5;
+    Category category = 6;
+    Dimensions dimensions = 7;
+    Manufacturer manufacturer = 8;
+    repeated string tags = 9;
+    map<string, Value> metadata = 10;
+    google.protobuf.Timestamp created_at = 11;
+    google.protobuf.Timestamp updated_at = 12;
+}
+
+//Category - Категории
+enum Category {
+    CATEGORY_UNSPECIFIED = 0;   // Неизвестная категория
+    CATEGORY_ENGINE = 1;    // Двигатель
+    CATEGORY_FUEL = 2;      // Топливо
+    CATEGORY_PORTHOLE = 3;  // Иллюминатор
+    CATEGORY_WING = 4;      // Крыло
+}
+// Dimensions - размеры и вес деталией 
+message Dimensions {
+    double length	= 1; //	Длина в см
+    double width = 2;    //	Ширина в см
+    double height = 3;   //	Высота в см
+    double weight	= 4; //	Вес в кг
+}
+
+// Manufacturer - производители
+message Manufacturer {
+    string name	= 1;     //	Название
+    string country	= 2; //	Страна производства
+    string website	= 3; //	Сайт производителя
+}
+
+// Value
+message Value {
+    oneof value {
+        string string_value	= 1; //	Строковое значение
+        int64 int64_value	= 2; //	Целое значение
+        double double_value	= 3; //	Дробное значение
+        bool bool_value	= 4;    //	Логическое значение   
+    }
+}
+
+// PartsFilter - фильтр поиск деталей
+message PartsFilter {
+    repeated string uuids = 1;                     // Список UUID'ов. Пусто — не фильтруем по UUID
+    repeated string names = 2;                     // Список имён. Пусто — не фильтруем по имени
+    repeated Category categories	= 3;           // Список категорий. Пусто — не фильтруем по категории
+    repeated string manufacturer_countries	= 4;   // Список стран производителей. Пусто — не фильтруем по стране
+    repeated string tags	= 5;                   // Список тегов. Пусто — не фильтруем по тегам
+}
