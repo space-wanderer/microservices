@@ -1,4 +1,4 @@
-module payment
+module github.com/space-wanderer/microservices/payment
 
 replace github.com/space-wanderer/microservices/shared => ../shared
 

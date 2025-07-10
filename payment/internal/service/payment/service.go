@@ -1,13 +1,13 @@
 package payment
 
-import def "github.com/space-wanderer/microservices/payment/internal/service"
+import (
+	"github.com/space-wanderer/microservices/payment/internal/service"
+)
 
-var _ def.PaymentService = (*Service)(nil)
-
-type service struct {
+type Service struct {
 	paymentService service.PaymentService
 }
 
-func NewService(paymentService service.PaymentService) *service {
-	return &service{paymentService: paymentService}
+func NewService() *Service {
+	return &Service{}
 }
