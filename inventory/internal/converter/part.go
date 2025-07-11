@@ -3,6 +3,8 @@ package converter
 import (
 	"github.com/space-wanderer/microservices/inventory/internal/model"
 	repoModel "github.com/space-wanderer/microservices/inventory/internal/repository/model"
+	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ConvertRepoPartToModelPart конвертирует Part из repository model в service model
@@ -118,4 +120,97 @@ func ConvertRepoPartsToModelParts(repoParts []*repoModel.Part) []*model.Part {
 		modelParts[i] = ConvertRepoPartToModelPart(repoPart)
 	}
 	return modelParts
+}
+
+// convertPartToGRPC конвертирует внутреннюю модель Part в gRPC модель
+func ConvertPartToGRPC(part *model.Part) *inventoryV1.Part {
+	grpcPart := &inventoryV1.Part{
+		Uuid:          part.UUID,
+		Name:          part.Name,
+		Description:   part.Description,
+		Price:         part.Price,
+		StockQuantity: part.StockQuantity,
+		Category:      convertCategoryToGRPC(part.Category),
+		Tags:          part.Tags,
+		CreatedAt:     timestamppb.New(part.CreatedAt),
+		UpdatedAt:     timestamppb.New(part.UpdatedAt),
+	}
+
+	if part.Dimensions != nil {
+		grpcPart.Dimensions = &inventoryV1.Dimensions{
+			Length: part.Dimensions.Length,
+			Width:  part.Dimensions.Width,
+			Height: part.Dimensions.Height,
+			Weight: part.Dimensions.Weight,
+		}
+	}
+
+	if part.Manufacturer != nil {
+		grpcPart.Manufacturer = &inventoryV1.Manufacturer{
+			Name:    part.Manufacturer.Name,
+			Country: part.Manufacturer.Country,
+			Website: part.Manufacturer.Website,
+		}
+	}
+
+	return grpcPart
+}
+
+// convertCategoryToGRPC конвертирует внутреннюю категорию в gRPC категорию
+func convertCategoryToGRPC(category model.Category) inventoryV1.Category {
+	switch category {
+	case model.CategoryEngine:
+		return inventoryV1.Category_CATEGORY_ENGINE
+	case model.CategoryFuel:
+		return inventoryV1.Category_CATEGORY_FUEL
+	case model.CategoryPorthole:
+		return inventoryV1.Category_CATEGORY_PORTHOLE
+	case model.CategoryWing:
+		return inventoryV1.Category_CATEGORY_WING
+	default:
+		return inventoryV1.Category_CATEGORY_UNSPECIFIED
+	}
+}
+
+// ConvertFilterFromGRPC конвертирует gRPC фильтр в модель фильтра
+func ConvertFilterFromGRPC(grpcFilter *inventoryV1.PartsFilter) *model.PartsFilter {
+	if grpcFilter == nil {
+		return &model.PartsFilter{}
+	}
+	return &model.PartsFilter{
+		Uuids:                 grpcFilter.GetUuids(),
+		Names:                 grpcFilter.GetNames(),
+		Categories:            convertGRPCCategoriesToModelCategories(grpcFilter.GetCategories()),
+		ManufacturerCountries: grpcFilter.GetManufacturerCountries(),
+		Tags:                  grpcFilter.GetTags(),
+	}
+}
+
+// convertGRPCCategoriesToModelCategories конвертирует gRPC категории в модель категории
+func convertGRPCCategoriesToModelCategories(grpcCategories []inventoryV1.Category) []model.Category {
+	if grpcCategories == nil {
+		return nil
+	}
+
+	modelCategories := make([]model.Category, len(grpcCategories))
+	for i, category := range grpcCategories {
+		modelCategories[i] = convertGRPCCategoryToModelCategory(category)
+	}
+	return modelCategories
+}
+
+// convertGRPCCategoryToModelCategory конвертирует gRPC категорию в модель категории
+func convertGRPCCategoryToModelCategory(grpcCategory inventoryV1.Category) model.Category {
+	switch grpcCategory {
+	case inventoryV1.Category_CATEGORY_ENGINE:
+		return model.CategoryEngine
+	case inventoryV1.Category_CATEGORY_FUEL:
+		return model.CategoryFuel
+	case inventoryV1.Category_CATEGORY_PORTHOLE:
+		return model.CategoryPorthole
+	case inventoryV1.Category_CATEGORY_WING:
+		return model.CategoryWing
+	default:
+		return model.CategoryUnknown
+	}
 }
