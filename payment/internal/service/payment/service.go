@@ -8,6 +8,6 @@ type Service struct {
 	paymentService service.PaymentService
 }
 
-func NewService() *Service {
-	return &Service{}
+func NewService(paymentService service.PaymentService) *Service {
+	return &Service{paymentService: paymentService}
 }
