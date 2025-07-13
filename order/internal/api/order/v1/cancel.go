@@ -11,7 +11,7 @@ func (a *api) CancelOrderByUuid(ctx context.Context, params orderV1.CancelOrderB
 	if err != nil {
 		return &orderV1.ConflictError{
 			Code:    409,
-			Message: err.Error(),
+			Message: "Заказ уже оплачен и не может быть отменен",
 		}, nil
 	}
 

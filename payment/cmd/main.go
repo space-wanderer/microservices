@@ -32,7 +32,7 @@ func main() {
 
 	s := grpc.NewServer()
 
-	myPaymentService := &paymentService.Service{} // создаём экземпляр вашей реализации
+	myPaymentService := &paymentService.Service{}
 	service := paymentService.NewService(myPaymentService)
 	api := paymentV1API.NewAPI(service)
 
