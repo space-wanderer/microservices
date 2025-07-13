@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	inventoryV1API "github.com/space-wanderer/microservices/inventory/internal/api/inventory/v1"
-	inventoryRepository "github.com/space-wanderer/microservices/inventory/internal/part"
+	inventoryRepository "github.com/space-wanderer/microservices/inventory/internal/repository/part"
 	inventoryService "github.com/space-wanderer/microservices/inventory/internal/service/part"
 	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
 )
