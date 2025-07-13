@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/space-wanderer/microservices/order/internal/converter"
 	"github.com/space-wanderer/microservices/order/internal/model"
 )

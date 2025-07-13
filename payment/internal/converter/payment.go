@@ -2,7 +2,6 @@ package converter
 
 import (
 	"github.com/space-wanderer/microservices/payment/internal/model"
-
 	paymentV1 "github.com/space-wanderer/microservices/shared/pkg/proto/payment/v1"
 )
 

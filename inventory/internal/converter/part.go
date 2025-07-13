@@ -1,10 +1,11 @@
 package converter
 
 import (
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/space-wanderer/microservices/inventory/internal/model"
 	repoModel "github.com/space-wanderer/microservices/inventory/internal/repository/model"
 	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ConvertRepoPartToModelPart конвертирует Part из repository model в service model

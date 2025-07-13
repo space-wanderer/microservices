@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/space-wanderer/microservices/order/internal/service"
-
 	orderV1 "github.com/space-wanderer/microservices/shared/pkg/api/order/v1"
 )
 

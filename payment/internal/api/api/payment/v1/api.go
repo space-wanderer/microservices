@@ -2,7 +2,6 @@ package v1
 
 import (
 	"github.com/space-wanderer/microservices/payment/internal/service"
-
 	paymentV1 "github.com/space-wanderer/microservices/shared/pkg/proto/payment/v1"
 )
 

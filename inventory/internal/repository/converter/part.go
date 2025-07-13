@@ -3,9 +3,10 @@ package converter
 import (
 	"time"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/space-wanderer/microservices/inventory/internal/repository/model"
 	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ConvertProtoPartToRepoPart конвертирует Part из proto в repository model

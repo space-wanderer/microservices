@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+
 	"github.com/space-wanderer/microservices/order/internal/model"
 	orderV1 "github.com/space-wanderer/microservices/shared/pkg/api/order/v1"
 )
@@ -24,7 +25,13 @@ func (a *api) PayOrder(ctx context.Context, req *orderV1.PayOrderRequest, params
 		}, nil
 	}
 
-	transactionUUID, _ := uuid.Parse(*order.TransactionUUID)
+	transactionUUID, err := uuid.Parse(*order.TransactionUUID)
+	if err != nil {
+		return &orderV1.BadGatewayError{
+			Error:   "PAYMENT_ERROR",
+			Message: "Invalid transaction UUID format",
+		}, nil
+	}
 	return &orderV1.PayOrderResponse{
 		TransactionUUID: transactionUUID,
 	}, nil

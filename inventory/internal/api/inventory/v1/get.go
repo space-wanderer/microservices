@@ -3,10 +3,11 @@ package v1
 import (
 	"context"
 
-	"github.com/space-wanderer/microservices/inventory/internal/converter"
-	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/space-wanderer/microservices/inventory/internal/converter"
+	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
 )
 
 func (a *api) GetPart(ctx context.Context, req *inventoryV1.GetPartRequest) (*inventoryV1.GetPartResponse, error) {

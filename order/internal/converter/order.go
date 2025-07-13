@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+
 	"github.com/space-wanderer/microservices/order/internal/model"
 	repoModel "github.com/space-wanderer/microservices/order/internal/repository/model"
 	order_v1 "github.com/space-wanderer/microservices/shared/pkg/api/order/v1"

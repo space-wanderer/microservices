@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/google/uuid"
+
 	"github.com/space-wanderer/microservices/payment/internal/model"
 )
 
