@@ -1,4 +1,4 @@
-![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/space-wanderer/4b278207b5900240ff8ced6cdb26cf64/raw/coverage.json)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/space-wanderer/af4d081f9c226541a5528f9c91c8eb69/raw/coverage.json)
 
 # microservices
 
