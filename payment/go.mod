@@ -5,6 +5,7 @@ replace github.com/space-wanderer/microservices/shared => ../shared
 go 1.24.4
 
 require (
+	github.com/brianvoe/gofakeit/v7 v7.3.0
 	github.com/google/uuid v1.6.0
 	github.com/space-wanderer/microservices/shared v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.10.0
@@ -12,7 +13,6 @@ require (
 )
 
 require (
-	github.com/brianvoe/gofakeit/v7 v7.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
