@@ -9,7 +9,6 @@ import (
 
 // PayOrder обрабатывает платеж через PaymentService
 func (c *client) PayOrder(ctx context.Context, orderUUID, userUUID, paymentMethod string) (string, error) {
-
 	req := &generatedPaymentV1.PayOrderRequest{
 		OrderUuid:     orderUUID,
 		UserUuid:      userUUID,

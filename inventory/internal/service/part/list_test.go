@@ -204,7 +204,8 @@ func TestService_ListParts_WithFakeData(t *testing.T) {
 	service := NewService(mockRepo)
 
 	// Генерируем случайные данные
-	gofakeit.Seed(12345) // Фиксируем seed для воспроизводимости
+	err := gofakeit.Seed(12345) // Фиксируем seed для воспроизводимости
+	assert.NoError(t, err)
 
 	testCases := []struct {
 		name   string

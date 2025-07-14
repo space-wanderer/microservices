@@ -1,3 +1,5 @@
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/space-wanderer/4b278207b5900240ff8ced6cdb26cf64/raw/coverage.json)
+
 # microservices
 
 Этот репозиторий содержит проект из курса [Микросервисы, как в BigTech 2.0].

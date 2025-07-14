@@ -18,7 +18,7 @@ func (r *repository) ListParts(_ context.Context, filter *repoModel.PartsFilter)
 		return parts, nil
 	}
 
-	var filteredParts []*repoModel.Part
+	filteredParts := make([]*repoModel.Part, 0)
 
 	for _, part := range r.parts {
 		if matchesFilter(part, filter) {

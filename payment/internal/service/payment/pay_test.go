@@ -32,7 +32,8 @@ func TestService_PayOrder_WithFakeData(t *testing.T) {
 	service := NewService()
 
 	// Генерируем случайные данные
-	gofakeit.Seed(12345)
+	err := gofakeit.Seed(12345)
+	assert.NoError(t, err)
 
 	testCases := []model.PaymentMethod{
 		model.PaymentMethodCard,

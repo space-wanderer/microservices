@@ -1,22 +1,20 @@
 package part
 
 import (
-	"context"
 	"testing"
 
-	"github.com/space-wanderer/microservices/inventory/internal/repository/mocks"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/space-wanderer/microservices/inventory/internal/repository/mocks"
 )
 
 type ServiceSuite struct {
 	suite.Suite
-	cnx                 context.Context
 	inventoryRepository *mocks.InventoryRepository
 	service             *service
 }
 
 func (s *ServiceSuite) SetupTest() {
-	s.cnx = context.Background()
 	s.inventoryRepository = mocks.NewInventoryRepository(s.T())
 	s.service = NewService(
 		s.inventoryRepository,
