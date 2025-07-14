@@ -9,24 +9,11 @@ import (
 
 // PayOrder обрабатывает платеж через PaymentService
 func (c *client) PayOrder(ctx context.Context, orderUUID, userUUID, paymentMethod string) (string, error) {
-	var grpcPaymentMethod generatedPaymentV1.PaymentMethod
-	switch paymentMethod {
-	case "CARD":
-		grpcPaymentMethod = generatedPaymentV1.PaymentMethod_PAYMENT_METHOD_CARD
-	case "SBP":
-		grpcPaymentMethod = generatedPaymentV1.PaymentMethod_PAYMENT_METHOD_SBP
-	case "CREDIT_CARD":
-		grpcPaymentMethod = generatedPaymentV1.PaymentMethod_PAYMENT_METHOD_CREDIT_CARD
-	case "INVESTOR_MONEY":
-		grpcPaymentMethod = generatedPaymentV1.PaymentMethod_PAYMENT_METHOD_INVESTOR_MONEY
-	default:
-		grpcPaymentMethod = generatedPaymentV1.PaymentMethod_PAYMENT_METHOD_UNSPECIFIED
-	}
 
 	req := &generatedPaymentV1.PayOrderRequest{
 		OrderUuid:     orderUUID,
 		UserUuid:      userUUID,
-		PaymentMethod: grpcPaymentMethod,
+		PaymentMethod: generatedPaymentV1.PaymentMethod(generatedPaymentV1.PaymentMethod_value[paymentMethod]),
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
