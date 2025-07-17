@@ -1,18 +1,11 @@
 package order
 
-import (
-	"sync"
-
-	"github.com/space-wanderer/microservices/order/internal/repository/model"
-)
+import "github.com/jackc/pgx/v5/pgxpool"
 
 type repository struct {
-	mu     sync.RWMutex
-	orders map[string]*model.Order
+	db *pgxpool.Pool
 }
 
-func NewRepository() *repository {
-	return &repository{
-		orders: make(map[string]*model.Order),
-	}
+func NewRepository(db *pgxpool.Pool) *repository {
+	return &repository{db: db}
 }

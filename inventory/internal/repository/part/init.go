@@ -1,21 +1,58 @@
 package part
 
 import (
-	"sync"
+	"context"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	repoModel "github.com/space-wanderer/microservices/inventory/internal/repository/model"
 )
 
 type repository struct {
-	mu    sync.RWMutex
-	parts map[string]*repoModel.Part
+	collection *mongo.Collection
 }
 
-func NewRepository() *repository {
+func NewRepository(db *mongo.Database) *repository {
+	ctx := context.Background()
+	collection := db.Collection("parts")
+	InitSampleData(collection, ctx)
+
 	return &repository{
-		parts: createSampleParts(),
+		collection: collection,
 	}
+}
+
+// InitSampleData инициализирует коллекцию с тестовыми данными
+func InitSampleData(collection *mongo.Collection, ctx context.Context) error {
+	// Проверяем, есть ли уже данные в коллекции
+	count, err := collection.CountDocuments(ctx, map[string]interface{}{})
+	if err != nil {
+		return err
+	}
+
+	// Если данные уже есть, не добавляем повторно
+	if count > 0 {
+		return nil
+	}
+
+	// Получаем тестовые данные
+	sampleParts := createSampleParts()
+
+	// Конвертируем map в slice для вставки
+	var documents []interface{}
+	for _, part := range sampleParts {
+		documents = append(documents, part)
+	}
+
+	// Вставляем все документы в коллекцию
+	if len(documents) > 0 {
+		_, err = collection.InsertMany(ctx, documents)
+		return err
+	}
+
+	return nil
 }
 
 func createSampleParts() map[string]*repoModel.Part {
@@ -41,8 +78,8 @@ func createSampleParts() map[string]*repoModel.Part {
 			Website: "https://cosmotech.ru",
 		},
 		Tags:      []string{"ионный", "двигатель", "межпланетный", "высокоэффективный"},
-		CreatedAt: time.Now().Add(-30 * 24 * time.Hour),
-		UpdatedAt: time.Now(),
+		CreatedAt: primitive.NewDateTimeFromTime(time.Now().Add(-30 * 24 * time.Hour)),
+		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
 	parts["550e8400-e29b-41d4-a716-446655440002"] = &repoModel.Part{
@@ -64,8 +101,8 @@ func createSampleParts() map[string]*repoModel.Part {
 			Website: "https://startech.com",
 		},
 		Tags:      []string{"плазменный", "двигатель", "тяжелый", "грузовой"},
-		CreatedAt: time.Now().Add(-45 * 24 * time.Hour),
-		UpdatedAt: time.Now(),
+		CreatedAt: primitive.NewDateTimeFromTime(time.Now().Add(-45 * 24 * time.Hour)),
+		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
 	// Топливо
@@ -88,8 +125,8 @@ func createSampleParts() map[string]*repoModel.Part {
 			Website: "https://cryofuel.ru",
 		},
 		Tags:      []string{"криогенное", "топливо", "водород", "кислород"},
-		CreatedAt: time.Now().Add(-60 * 24 * time.Hour),
-		UpdatedAt: time.Now(),
+		CreatedAt: primitive.NewDateTimeFromTime(time.Now().Add(-60 * 24 * time.Hour)),
+		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
 	parts["550e8400-e29b-41d4-a716-446655440004"] = &repoModel.Part{
@@ -111,8 +148,8 @@ func createSampleParts() map[string]*repoModel.Part {
 			Website: "https://atomenergo.ru",
 		},
 		Tags:      []string{"ядерное", "топливо", "уран", "реактор"},
-		CreatedAt: time.Now().Add(-90 * 24 * time.Hour),
-		UpdatedAt: time.Now(),
+		CreatedAt: primitive.NewDateTimeFromTime(time.Now().Add(-90 * 24 * time.Hour)),
+		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
 	// Иллюминаторы
@@ -135,8 +172,8 @@ func createSampleParts() map[string]*repoModel.Part {
 			Website: "https://quartztech.ru",
 		},
 		Tags:      []string{"кварцевое", "окно", "прозрачное", "космическое"},
-		CreatedAt: time.Now().Add(-20 * 24 * time.Hour),
-		UpdatedAt: time.Now(),
+		CreatedAt: primitive.NewDateTimeFromTime(time.Now().Add(-20 * 24 * time.Hour)),
+		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
 	parts["550e8400-e29b-41d4-a716-446655440006"] = &repoModel.Part{
@@ -158,8 +195,8 @@ func createSampleParts() map[string]*repoModel.Part {
 			Website: "https://armorglass.de",
 		},
 		Tags:      []string{"бронированное", "окно", "защищенное", "многослойное"},
-		CreatedAt: time.Now().Add(-15 * 24 * time.Hour),
-		UpdatedAt: time.Now(),
+		CreatedAt: primitive.NewDateTimeFromTime(time.Now().Add(-15 * 24 * time.Hour)),
+		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
 	// Крылья
@@ -182,8 +219,8 @@ func createSampleParts() map[string]*repoModel.Part {
 			Website: "https://solntech.ru",
 		},
 		Tags:      []string{"солнечная", "панель", "энергия", "космическая"},
-		CreatedAt: time.Now().Add(-25 * 24 * time.Hour),
-		UpdatedAt: time.Now(),
+		CreatedAt: primitive.NewDateTimeFromTime(time.Now().Add(-25 * 24 * time.Hour)),
+		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
 	parts["550e8400-e29b-41d4-a716-446655440008"] = &repoModel.Part{
@@ -205,8 +242,8 @@ func createSampleParts() map[string]*repoModel.Part {
 			Website: "https://aerodynamics.fr",
 		},
 		Tags:      []string{"аэродинамическое", "крыло", "легкое", "атмосферное"},
-		CreatedAt: time.Now().Add(-35 * 24 * time.Hour),
-		UpdatedAt: time.Now(),
+		CreatedAt: primitive.NewDateTimeFromTime(time.Now().Add(-35 * 24 * time.Hour)),
+		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
 	return parts

@@ -69,9 +69,10 @@ func ConvertModelOrderToOrderDto(modelOrder *model.Order) order_v1.OrderDto {
 // ConvertCreateOrderRequestToModelOrder конвертирует CreateOrderRequest в service model
 func ConvertCreateOrderRequestToModelOrder(req *order_v1.CreateOrderRequest) *model.Order {
 	return &model.Order{
-		UserUUID:  req.UserUUID.String(),
-		PartUuids: convertUUIDSliceToStringSlice(req.PartUuids),
-		Status:    model.StatusPendingPayment,
+		UserUUID:      req.UserUUID.String(),
+		PartUuids:     convertUUIDSliceToStringSlice(req.PartUuids),
+		Status:        model.StatusPendingPayment,
+		PaymentMethod: model.PaymentMethodUnknown, // Устанавливаем по умолчанию
 	}
 }
 

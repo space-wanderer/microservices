@@ -1,20 +1,23 @@
 package model
 
-import "time"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Part struct {
-	UUID          string
-	Name          string
-	Description   string
-	Price         float64
-	StockQuantity int64
-	Category      Category
-	Dimensions    *Dimensions
-	Manufacturer  *Manufacturer
-	Tags          []string
-	Metadata      map[string]*Value
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID            primitive.ObjectID `bson:"_id,omitempty" json:"-"`
+	UUID          string             `bson:"uuid" json:"uuid"`
+	Name          string             `bson:"name" json:"name"`
+	Description   string             `bson:"description" json:"description"`
+	Price         float64            `bson:"price" json:"price"`
+	StockQuantity int64              `bson:"stock_quantity" json:"stock_quantity"`
+	Category      Category           `bson:"category" json:"category"`
+	Dimensions    *Dimensions        `bson:"dimensions" json:"dimensions"`
+	Manufacturer  *Manufacturer      `bson:"manufacturer" json:"manufacturer"`
+	Tags          []string           `bson:"tags" json:"tags"`
+	Metadata      map[string]*Value  `bson:"metadata" json:"metadata"`
+	CreatedAt     primitive.DateTime `bson:"created_at" json:"created_at"`
+	UpdatedAt     primitive.DateTime `bson:"updated_at" json:"updated_at"`
 }
 
 type Category string
