@@ -1,5 +1,11 @@
 package model
 
-import "errors"
+import (
+	"errors"
 
-var ErrPayment = errors.New("payment error")
+	sharedErrors "github.com/space-wanderer/microservices/shared/pkg/errors"
+)
+
+var (
+	ErrPayment = sharedErrors.NewInvalidArgumentError(errors.New("payment error"))
+)

@@ -2,8 +2,8 @@ package part
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/space-wanderer/microservices/inventory/internal/model"
 	repoModel "github.com/space-wanderer/microservices/inventory/internal/repository/model"
 )
 
@@ -13,7 +13,7 @@ func (r *repository) GetPart(_ context.Context, uuid string) (*repoModel.Part, e
 
 	part, ok := r.parts[uuid]
 	if !ok {
-		return nil, fmt.Errorf("part not found: %s", uuid)
+		return nil, model.ErrPartNotFound
 	}
 	return part, nil
 }

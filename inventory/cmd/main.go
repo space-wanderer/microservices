@@ -14,6 +14,7 @@ import (
 	inventoryV1API "github.com/space-wanderer/microservices/inventory/internal/api/inventory/v1"
 	inventoryRepository "github.com/space-wanderer/microservices/inventory/internal/repository/part"
 	inventoryService "github.com/space-wanderer/microservices/inventory/internal/service/part"
+	sharedInterceptors "github.com/space-wanderer/microservices/shared/pkg/interceptors"
 	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
 )
 
@@ -31,7 +32,9 @@ func main() {
 		}
 	}()
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(sharedInterceptors.UnaryErrorInterceptor()),
+	)
 
 	repo := inventoryRepository.NewRepository()
 	service := inventoryService.NewService(repo)

@@ -3,9 +3,6 @@ package v1
 import (
 	"context"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/space-wanderer/microservices/inventory/internal/converter"
 	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
 )
@@ -13,7 +10,7 @@ import (
 func (a *api) GetPart(ctx context.Context, req *inventoryV1.GetPartRequest) (*inventoryV1.GetPartResponse, error) {
 	part, err := a.inventoryService.GetPart(ctx, req.GetUuid())
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "NotFound: %s", req.GetUuid())
+		return nil, err
 	}
 
 	grpcPart := converter.ConvertPartToGRPC(part)
