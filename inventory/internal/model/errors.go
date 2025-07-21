@@ -1,5 +1,12 @@
 package model
 
-import "errors"
+import (
+	"errors"
 
-var ErrSightingNotFound = errors.New("part not found")
+	sharedErrors "github.com/space-wanderer/microservices/shared/pkg/errors"
+)
+
+var (
+	ErrPartNotFound = sharedErrors.NewNotFoundError(errors.New("part not found"))
+	ErrInvalidUUID  = sharedErrors.NewInvalidArgumentError(errors.New("invalid uuid"))
+)

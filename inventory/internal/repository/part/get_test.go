@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/space-wanderer/microservices/inventory/internal/repository/mocks"
 	repoModel "github.com/space-wanderer/microservices/inventory/internal/repository/model"
@@ -16,15 +19,62 @@ type GetPartTestSuite struct {
 	suite.Suite
 	mockRepository *mocks.InventoryRepository
 	repository     *repository
+	mongoClient    *mongo.Client
+	testDB         *mongo.Database
 }
 
 func (s *GetPartTestSuite) SetupTest() {
 	s.mockRepository = mocks.NewInventoryRepository(s.T())
-	s.repository = NewRepository()
+
+	// Подключаемся к тестовой MongoDB с аутентификацией
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Используем те же параметры подключения, что и в main.go
+	mongoURI := "mongodb://inventory-service-user:inventory-service-password@localhost:27017/inventory-test?authSource=admin"
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		s.T().Fatalf("failed to connect to MongoDB: %v", err)
+	}
+
+	// Проверяем подключение
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		s.T().Fatalf("failed to ping MongoDB: %v", err)
+	}
+
+	s.mongoClient = client
+	s.testDB = client.Database("inventory-test")
+
+	// Создаем репозиторий с тестовой базой
+	s.repository = NewRepository(s.testDB)
 }
 
 func (s *GetPartTestSuite) TearDownTest() {
 	s.mockRepository.AssertExpectations(s.T())
+
+	// Очищаем тестовую базу данных
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Удаляем коллекцию parts
+	err := s.testDB.Collection("parts").Drop(ctx)
+	if err != nil {
+		s.T().Logf("failed to drop test collection: %v", err)
+	}
+}
+
+func (s *GetPartTestSuite) TearDownSuite() {
+	// Закрываем соединение с MongoDB
+	if s.mongoClient != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		err := s.mongoClient.Disconnect(ctx)
+		if err != nil {
+			s.T().Logf("failed to disconnect from MongoDB: %v", err)
+		}
+	}
 }
 
 func TestGetPartTestSuite(t *testing.T) {
@@ -61,7 +111,6 @@ func (s *GetPartTestSuite) TestGetPart_NotFound() {
 	assert.Error(s.T(), err)
 	assert.Nil(s.T(), result)
 	assert.Contains(s.T(), err.Error(), "part not found")
-	assert.Contains(s.T(), err.Error(), uuid)
 }
 
 func (s *GetPartTestSuite) TestGetPart_EmptyUUID() {

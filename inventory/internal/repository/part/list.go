@@ -2,6 +2,7 @@ package part
 
 import (
 	"context"
+	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -17,7 +18,11 @@ func (r *repository) ListParts(ctx context.Context, filter *repoModel.PartsFilte
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		if err := cursor.Close(ctx); err != nil {
+			log.Printf("warning: failed to close cursor: %v", err)
+		}
+	}()
 
 	// Читаем результаты
 	var parts []*repoModel.Part

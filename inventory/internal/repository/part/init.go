@@ -2,6 +2,7 @@ package part
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -17,7 +18,10 @@ type repository struct {
 func NewRepository(db *mongo.Database) *repository {
 	ctx := context.Background()
 	collection := db.Collection("parts")
-	InitSampleData(collection, ctx)
+	if err := InitSampleData(collection, ctx); err != nil {
+		// Логируем ошибку, но не прерываем работу
+		log.Printf("warning: failed to init sample data: %v", err)
+	}
 
 	return &repository{
 		collection: collection,

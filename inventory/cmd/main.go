@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
@@ -18,12 +19,24 @@ import (
 	inventoryV1API "github.com/space-wanderer/microservices/inventory/internal/api/inventory/v1"
 	inventoryRepository "github.com/space-wanderer/microservices/inventory/internal/repository/part"
 	inventoryService "github.com/space-wanderer/microservices/inventory/internal/service/part"
+	"github.com/space-wanderer/microservices/shared/pkg/interceptors"
 	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
 )
 
 const grpsPort = 50051
 
 func main() {
+	// Загружаем переменные окружения из .env файла
+	if err := godotenv.Load(); err != nil {
+		log.Printf("⚠️  Не удалось загрузить .env файл: %v", err)
+	}
+
+	// Получаем параметры подключения из переменных окружения
+	mongoURI := os.Getenv("MONGODB_URI")
+	if mongoURI == "" {
+		log.Fatal("❌ MONGODB_URI is not set")
+	}
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpsPort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -39,15 +52,10 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Получаем параметры подключения из переменных окружения
-	mongoURI := os.Getenv("MONGODB_URI")
-	if mongoURI == "" {
-		mongoURI = "mongodb://inventory-service-user:inventory-service-password@localhost:27017/inventory-service?authSource=admin"
-	}
-
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
-		log.Fatalf("failed to connect to MongoDB: %v", err)
+		log.Printf("failed to connect to MongoDB: %v", err)
+		return
 	}
 	defer func() {
 		if err = client.Disconnect(ctx); err != nil {
@@ -58,7 +66,8 @@ func main() {
 	// Проверка подключения
 	err = client.Ping(ctx, nil)
 	if err != nil {
-		log.Fatalf("failed to ping MongoDB: %v", err)
+		log.Printf("failed to ping MongoDB: %v", err)
+		return
 	}
 
 	dbName := os.Getenv("MONGODB_DATABASE")
@@ -67,7 +76,9 @@ func main() {
 	}
 	db := client.Database(dbName)
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptors.UnaryErrorInterceptor()),
+	)
 
 	repo := inventoryRepository.NewRepository(db)
 	service := inventoryService.NewService(repo)

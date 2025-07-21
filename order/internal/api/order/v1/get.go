@@ -11,10 +11,7 @@ func (a *api) GetOrderByUuid(ctx context.Context, params orderV1.GetOrderByUuidP
 	// Получаем заказ через сервис
 	order, err := a.orderService.GetOrderByUuid(ctx, params.OrderUUID.String())
 	if err != nil {
-		return &orderV1.NotFoundError{
-			Code:    404,
-			Message: "Заказ не найден",
-		}, nil
+		return nil, err
 	}
 
 	// Конвертируем в DTO
