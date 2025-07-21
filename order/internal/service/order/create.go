@@ -26,6 +26,10 @@ func (s *service) CreateOrder(ctx context.Context, req model.Order) (model.Order
 
 	totalPrice, err := s.calculateOrderPrice(ctx, partUUIDs)
 	if err != nil {
+		// Проверяем, является ли это business error
+		if model.ErrOrderNotFound.Error() == err.Error() {
+			return model.Order{}, err
+		}
 		return model.Order{}, fmt.Errorf("ошибка при получении информации о деталях: %w", err)
 	}
 
@@ -52,7 +56,7 @@ func (s *service) calculateOrderPrice(ctx context.Context, partUuids []uuid.UUID
 		}
 
 		if len(parts) == 0 {
-			return 0, fmt.Errorf("part not found: %s", partUUID.String())
+			return 0, model.ErrOrderNotFound
 		}
 
 		totalPrice += float32(parts[0].Price)

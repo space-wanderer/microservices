@@ -99,7 +99,7 @@ func (s *CancelOrderTestSuite) TestCancelOrderByUuid_GetOrderError() {
 
 	// Assert
 	assert.Error(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "failed to get order")
+	assert.Equal(s.T(), model.ErrOrderNotFound, err)
 	assert.Equal(s.T(), model.Order{}, result)
 }
 
@@ -127,7 +127,7 @@ func (s *CancelOrderTestSuite) TestCancelOrderByUuid_OrderAlreadyPaid() {
 
 	// Assert
 	assert.Error(s.T(), err)
-	assert.Equal(s.T(), "order is already paid", err.Error())
+	assert.Equal(s.T(), model.ErrOrderCannotBeCancelled, err)
 	assert.Equal(s.T(), model.Order{}, result)
 }
 
@@ -222,14 +222,14 @@ func (s *CancelOrderTestSuite) TestCancelOrderByUuid_EmptyUUID() {
 	ctx := context.Background()
 	orderUUID := ""
 
-	s.orderRepository.On("GetOrderByUuid", ctx, orderUUID).Return(nil, errors.New("invalid uuid"))
+	s.orderRepository.On("GetOrderByUuid", ctx, orderUUID).Return(nil, errors.New("not found"))
 
 	// Act
 	result, err := s.service.CancelOrderByUuid(ctx, orderUUID)
 
 	// Assert
 	assert.Error(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "failed to get order")
+	assert.Equal(s.T(), model.ErrOrderNotFound, err)
 	assert.Equal(s.T(), model.Order{}, result)
 }
 

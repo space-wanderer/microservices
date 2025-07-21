@@ -5,7 +5,6 @@ go 1.24.4
 replace github.com/space-wanderer/microservices/shared => ../shared
 
 require (
-	github.com/brianvoe/gofakeit/v7 v7.3.0
 	github.com/space-wanderer/microservices/shared v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.10.0
 	google.golang.org/grpc v1.73.0

@@ -2,18 +2,18 @@ package order
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/space-wanderer/microservices/order/internal/repository/model"
+	orderModel "github.com/space-wanderer/microservices/order/internal/model"
+	repoModel "github.com/space-wanderer/microservices/order/internal/repository/model"
 )
 
-func (r *repository) GetOrderByUuid(ctx context.Context, uuid string) (*model.Order, error) {
+func (r *repository) GetOrderByUuid(ctx context.Context, uuid string) (*repoModel.Order, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	order, exists := r.orders[uuid]
 	if !exists {
-		return nil, fmt.Errorf("order not found")
+		return nil, orderModel.ErrOrderNotFound
 	}
 
 	return order, nil
