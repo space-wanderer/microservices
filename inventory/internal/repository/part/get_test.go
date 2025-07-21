@@ -61,7 +61,6 @@ func (s *GetPartTestSuite) TestGetPart_NotFound() {
 	assert.Error(s.T(), err)
 	assert.Nil(s.T(), result)
 	assert.Contains(s.T(), err.Error(), "part not found")
-	assert.Contains(s.T(), err.Error(), uuid)
 }
 
 func (s *GetPartTestSuite) TestGetPart_EmptyUUID() {

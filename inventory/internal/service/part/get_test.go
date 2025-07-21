@@ -113,10 +113,12 @@ func TestService_GetPart(t *testing.T) {
 		})
 	}
 }
+
 func newInventoryRepository(t interface {
 	mock.TestingT
 	Cleanup(func())
-}) *mocks.InventoryRepository {
+},
+) *mocks.InventoryRepository {
 	mock := mocks.NewInventoryRepository(t)
 	return mock
 }
