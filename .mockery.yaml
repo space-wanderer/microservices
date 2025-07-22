@@ -1,0 +1,27 @@
+with-expecter: true
+dir: "{{.InterfaceDir}}/mocks"
+filename: "mock_{{.InterfaceNameSnake}}.go"
+outpkg: "mocks"
+mockname: "{{.InterfaceName}}"
+resolve-type-alias: False
+issue-845-fix: True
+
+packages:
+  github.com/space-wanderer/microservices/inventory/internal/service:
+    config:
+      include-regex: ".*Service"
+  github.com/space-wanderer/microservices/inventory/internal/repository:
+    config:
+      include-regex: ".*Repository"
+  github.com/space-wanderer/microservices/order/internal/service:
+    config:
+      include-regex: ".*Service"
+  github.com/space-wanderer/microservices/order/internal/repository:
+    config:
+      include-regex: ".*Repository"
+  github.com/space-wanderer/microservices/order/internal/client/grpc:
+    config:
+       include-regex: ".*Client"
+  github.com/space-wanderer/microservices/payment/internal/service:
+    config:
+      include-regex: ".*Service"
