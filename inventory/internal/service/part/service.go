@@ -1,11 +1,11 @@
 package part
 
-import "github.com/space-wanderer/microservices/inventory/internal/repository"
+import "github.com/space-wanderer/microservices/inventory/internal/service"
 
-type service struct {
-	inventoryRepository repository.InventoryRepository
+type Service struct {
+	inventoryRepository service.PartService
 }
 
-func NewService(inventoryRepository repository.InventoryRepository) *service {
-	return &service{inventoryRepository: inventoryRepository}
+func NewService(inventoryRepository service.PartService) *Service {
+	return &Service{inventoryRepository: inventoryRepository}
 }

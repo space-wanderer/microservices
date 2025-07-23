@@ -11,7 +11,7 @@ import (
 type ServiceSuite struct {
 	suite.Suite
 	inventoryRepository *mocks.InventoryRepository
-	service             *service
+	service             *Service
 }
 
 func (s *ServiceSuite) SetupTest() {

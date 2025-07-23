@@ -7,7 +7,7 @@ import (
 	"github.com/space-wanderer/microservices/inventory/internal/model"
 )
 
-func (s *service) GetPart(ctx context.Context, uuid string) (*model.Part, error) {
+func (s *Service) GetPart(ctx context.Context, uuid string) (*model.Part, error) {
 	part, err := s.inventoryRepository.GetPart(ctx, uuid)
 	if err != nil {
 		return nil, err
