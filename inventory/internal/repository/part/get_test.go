@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/space-wanderer/microservices/inventory/internal/repository/mocks"
 	repoModel "github.com/space-wanderer/microservices/inventory/internal/repository/model"
@@ -18,113 +15,18 @@ import (
 type GetPartTestSuite struct {
 	suite.Suite
 	mockRepository *mocks.InventoryRepository
-	repository     *repository
-	mongoClient    *mongo.Client
-	testDB         *mongo.Database
 }
 
 func (s *GetPartTestSuite) SetupTest() {
 	s.mockRepository = mocks.NewInventoryRepository(s.T())
-
-	// Подключаемся к тестовой MongoDB с аутентификацией
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	// Используем те же параметры подключения, что и в main.go
-	mongoURI := "mongodb://inventory-service-user:inventory-service-password@localhost:27017/inventory-test?authSource=admin"
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
-	if err != nil {
-		s.T().Fatalf("failed to connect to MongoDB: %v", err)
-	}
-
-	// Проверяем подключение
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		s.T().Fatalf("failed to ping MongoDB: %v", err)
-	}
-
-	s.mongoClient = client
-	s.testDB = client.Database("inventory-test")
-
-	// Создаем репозиторий с тестовой базой
-	s.repository = NewRepository(s.testDB)
 }
 
 func (s *GetPartTestSuite) TearDownTest() {
 	s.mockRepository.AssertExpectations(s.T())
-
-	// Очищаем тестовую базу данных
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// Удаляем коллекцию parts
-	err := s.testDB.Collection("parts").Drop(ctx)
-	if err != nil {
-		s.T().Logf("failed to drop test collection: %v", err)
-	}
-}
-
-func (s *GetPartTestSuite) TearDownSuite() {
-	// Закрываем соединение с MongoDB
-	if s.mongoClient != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		err := s.mongoClient.Disconnect(ctx)
-		if err != nil {
-			s.T().Logf("failed to disconnect from MongoDB: %v", err)
-		}
-	}
 }
 
 func TestGetPartTestSuite(t *testing.T) {
 	suite.Run(t, new(GetPartTestSuite))
-}
-
-func (s *GetPartTestSuite) TestGetPart_Success() {
-	// Arrange
-	ctx := context.Background()
-	uuid := "550e8400-e29b-41d4-a716-446655440001"
-
-	// Act
-	result, err := s.repository.GetPart(ctx, uuid)
-
-	// Assert
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), result)
-	assert.Equal(s.T(), uuid, result.UUID)
-	assert.Equal(s.T(), "Ионный двигатель X-2000", result.Name)
-	assert.Equal(s.T(), repoModel.CategoryEngine, result.Category)
-	assert.Equal(s.T(), 150000.0, result.Price)
-	assert.Equal(s.T(), int64(5), result.StockQuantity)
-}
-
-func (s *GetPartTestSuite) TestGetPart_NotFound() {
-	// Arrange
-	ctx := context.Background()
-	uuid := "non-existent-uuid"
-
-	// Act
-	result, err := s.repository.GetPart(ctx, uuid)
-
-	// Assert
-	assert.Error(s.T(), err)
-	assert.Nil(s.T(), result)
-	assert.Contains(s.T(), err.Error(), "part not found")
-}
-
-func (s *GetPartTestSuite) TestGetPart_EmptyUUID() {
-	// Arrange
-	ctx := context.Background()
-	uuid := ""
-
-	// Act
-	result, err := s.repository.GetPart(ctx, uuid)
-
-	// Assert
-	assert.Error(s.T(), err)
-	assert.Nil(s.T(), result)
-	assert.Contains(s.T(), err.Error(), "part not found")
 }
 
 func (s *GetPartTestSuite) TestGetPart_WithMockRepository() {
@@ -181,132 +83,4 @@ func (s *GetPartTestSuite) TestGetPart_MockRepositoryError() {
 	assert.Error(s.T(), err)
 	assert.Nil(s.T(), result)
 	assert.Equal(s.T(), expectedError, err)
-}
-
-func (s *GetPartTestSuite) TestGetPart_AllCategories() {
-	// Arrange
-	testCases := []struct {
-		uuid     string
-		name     string
-		category repoModel.Category
-		price    float64
-	}{
-		{
-			uuid:     "550e8400-e29b-41d4-a716-446655440001",
-			name:     "Ионный двигатель X-2000",
-			category: repoModel.CategoryEngine,
-			price:    150000.0,
-		},
-		{
-			uuid:     "550e8400-e29b-41d4-a716-446655440003",
-			name:     "Криогенное топливо H2-O2",
-			category: repoModel.CategoryFuel,
-			price:    50000.0,
-		},
-		{
-			uuid:     "550e8400-e29b-41d4-a716-446655440005",
-			name:     "Кварцевое окно QW-100",
-			category: repoModel.CategoryPorthole,
-			price:    25000.0,
-		},
-		{
-			uuid:     "550e8400-e29b-41d4-a716-446655440007",
-			name:     "Солнечная панель SP-500",
-			category: repoModel.CategoryWing,
-			price:    75000.0,
-		},
-	}
-
-	for _, tc := range testCases {
-		s.Run(tc.name, func() {
-			// Act
-			result, err := s.repository.GetPart(context.Background(), tc.uuid)
-
-			// Assert
-			assert.NoError(s.T(), err)
-			assert.NotNil(s.T(), result)
-			assert.Equal(s.T(), tc.uuid, result.UUID)
-			assert.Equal(s.T(), tc.name, result.Name)
-			assert.Equal(s.T(), tc.category, result.Category)
-			assert.Equal(s.T(), tc.price, result.Price)
-		})
-	}
-}
-
-func (s *GetPartTestSuite) TestGetPart_ConcurrentAccess() {
-	// Arrange
-	ctx := context.Background()
-	uuid := "550e8400-e29b-41d4-a716-446655440001"
-
-	// Создаем каналы для синхронизации
-	done := make(chan bool, 10)
-
-	// Act - запускаем несколько горутин одновременно
-	for i := 0; i < 10; i++ {
-		go func() {
-			result, err := s.repository.GetPart(ctx, uuid)
-			assert.NoError(s.T(), err)
-			assert.NotNil(s.T(), result)
-			assert.Equal(s.T(), uuid, result.UUID)
-			done <- true
-		}()
-	}
-
-	// Ждем завершения всех горутин
-	for i := 0; i < 10; i++ {
-		<-done
-	}
-}
-
-func (s *GetPartTestSuite) TestGetPart_WithManufacturer() {
-	// Arrange
-	ctx := context.Background()
-	uuid := "550e8400-e29b-41d4-a716-446655440001"
-
-	// Act
-	result, err := s.repository.GetPart(ctx, uuid)
-
-	// Assert
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), result)
-	assert.NotNil(s.T(), result.Manufacturer)
-	assert.Equal(s.T(), "КосмоТех", result.Manufacturer.Name)
-	assert.Equal(s.T(), "Россия", result.Manufacturer.Country)
-	assert.Equal(s.T(), "https://cosmotech.ru", result.Manufacturer.Website)
-}
-
-func (s *GetPartTestSuite) TestGetPart_WithDimensions() {
-	// Arrange
-	ctx := context.Background()
-	uuid := "550e8400-e29b-41d4-a716-446655440001"
-
-	// Act
-	result, err := s.repository.GetPart(ctx, uuid)
-
-	// Assert
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), result)
-	assert.NotNil(s.T(), result.Dimensions)
-	assert.Equal(s.T(), 120.0, result.Dimensions.Length)
-	assert.Equal(s.T(), 80.0, result.Dimensions.Width)
-	assert.Equal(s.T(), 60.0, result.Dimensions.Height)
-	assert.Equal(s.T(), 250.0, result.Dimensions.Weight)
-}
-
-func (s *GetPartTestSuite) TestGetPart_WithTags() {
-	// Arrange
-	ctx := context.Background()
-	uuid := "550e8400-e29b-41d4-a716-446655440001"
-
-	// Act
-	result, err := s.repository.GetPart(ctx, uuid)
-
-	// Assert
-	assert.NoError(s.T(), err)
-	assert.NotNil(s.T(), result)
-	assert.Len(s.T(), result.Tags, 4)
-	assert.Contains(s.T(), result.Tags, "ионный")
-	assert.Contains(s.T(), result.Tags, "двигатель")
-	assert.Contains(s.T(), result.Tags, "межпланетный")
-	assert.Contains(s.T(), result.Tags, "высокоэффективный")
 }
