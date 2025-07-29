@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+
 	"github.com/space-wanderer/microservices/order/internal/config/env"
 )
 

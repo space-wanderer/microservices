@@ -40,7 +40,7 @@ const (
 func main() {
 	err := config.Load(configPath)
 	if err != nil {
-		panic(fmt.Sprintf("failed to load config: %w", err))
+		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
 
 	ctx := context.Background()

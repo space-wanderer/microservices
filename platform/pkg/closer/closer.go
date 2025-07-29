@@ -9,8 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/space-wanderer/microservices/platform/pkg/logger"
 	"go.uber.org/zap"
+
+	"github.com/space-wanderer/microservices/platform/pkg/logger"
 )
 
 const shutdownTimeout = 5 * time.Second

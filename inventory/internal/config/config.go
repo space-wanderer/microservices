@@ -1,9 +1,10 @@
-opackage config
+package config
 
 import (
 	"os"
 
 	"github.com/joho/godotenv"
+
 	"github.com/space-wanderer/microservices/inventory/internal/config/env"
 )
 

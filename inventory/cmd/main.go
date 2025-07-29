@@ -28,7 +28,7 @@ const configPath = "deploy/compose/inventory/.env"
 func main() {
 	err := config.Load(configPath)
 	if err != nil {
-		panic(fmt.Sprintf("failed to load config: %w", err))
+		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", config.AppConfig().InventoryGRPC.Address()))
