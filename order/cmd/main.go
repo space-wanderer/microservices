@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,12 +15,12 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	orderV1API "github.com/space-wanderer/microservices/order/internal/api/order/v1"
 	grpcClient "github.com/space-wanderer/microservices/order/internal/client/grpc"
+	"github.com/space-wanderer/microservices/order/internal/config"
 	"github.com/space-wanderer/microservices/order/internal/migrator"
 	orderRepository "github.com/space-wanderer/microservices/order/internal/repository/order"
 	orderService "github.com/space-wanderer/microservices/order/internal/service/order"
@@ -30,25 +30,23 @@ import (
 )
 
 const (
-	httpPort = "8080"
 	// Таймауты для HTTP-сервера
 	readHeaderTimeout = 5 * time.Second
 	shutdownTimeout   = 10 * time.Second
 
-	// Адреса gRPC сервисов
-	inventoryServiceAddr = "localhost:50051"
-	paymentServiceAddr   = "localhost:50052"
+	configPath = "deploy/compose/order/.env"
 )
 
 func main() {
-	// Загружаем переменные окружения из .env файла
-	if err := godotenv.Load(); err != nil {
-		log.Printf("⚠️  Не удалось загрузить .env файл: %v", err)
+	err := config.Load(configPath)
+	if err != nil {
+		panic(fmt.Sprintf("failed to load config: %w", err))
 	}
 
 	ctx := context.Background()
 	// Создаем gRPC соединения
-	inventoryConn, err := grpc.NewClient(inventoryServiceAddr,
+	inventoryConn, err := grpc.NewClient(
+		config.AppConfig().OrderInventoryGRPC.Address(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -61,7 +59,8 @@ func main() {
 		}
 	}()
 
-	paymentConn, err := grpc.NewClient(paymentServiceAddr,
+	paymentConn, err := grpc.NewClient(
+		config.AppConfig().OrderPaymentGRPC.Address(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -83,7 +82,10 @@ func main() {
 	paymentAdapter := grpcClient.NewPaymentClient(paymentClient)
 
 	// Создаем соединение с базой данных
-	pool, err := pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
+	pool, err := pgxpool.New(
+		ctx,
+		config.AppConfig().Postgres.URI(),
+	)
 	if err != nil {
 		log.Printf("❌ Ошибка подключения к PostgreSQL: %v", err)
 		return
@@ -99,7 +101,10 @@ func main() {
 
 	// Инициализируем мигратор
 	db := stdlib.OpenDBFromPool(pool)
-	migratorRunner := migrator.NewMigrator(db, "migrations")
+	migratorRunner := migrator.NewMigrator(
+		db,
+		config.AppConfig().Postgres.MigrationDir(),
+	)
 	err = migratorRunner.Up()
 	if err != nil {
 		log.Printf("Ошибка миграции базы данных: %v\n", err)
@@ -131,16 +136,16 @@ func main() {
 
 	// Запускаем HTTP-сервер
 	httpServer := &http.Server{
-		Addr:              net.JoinHostPort("localhost", httpPort),
+		Addr:              config.AppConfig().OrderHTTP.Address(),
 		Handler:           r,
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
 
 	// Запускаем сервер в отдельной горутине
 	go func() {
-		log.Printf("🚀 HTTP-сервер запущен на порту %s\n", httpPort)
-		log.Printf("🔗 Интеграция с InventoryService: %s\n", inventoryServiceAddr)
-		log.Printf("💳 Интеграция с PaymentService: %s\n", paymentServiceAddr)
+		log.Printf("🚀 HTTP-сервер запущен на порту %s\n", config.AppConfig().OrderHTTP.Address())
+		log.Printf("🔗 Интеграция с InventoryService: %s\n", config.AppConfig().OrderInventoryGRPC.Address())
+		log.Printf("💳 Интеграция с PaymentService: %s\n", config.AppConfig().OrderPaymentGRPC.Address())
 		err = httpServer.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Printf("❌ Ошибка запуска сервера: %v\n", err)
