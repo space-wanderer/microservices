@@ -3,24 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"net"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-
-	inventoryV1API "github.com/space-wanderer/microservices/inventory/internal/api/inventory/v1"
+	"github.com/space-wanderer/microservices/inventory/internal/app"
 	"github.com/space-wanderer/microservices/inventory/internal/config"
-	inventoryRepository "github.com/space-wanderer/microservices/inventory/internal/repository/part"
-	inventoryService "github.com/space-wanderer/microservices/inventory/internal/service/part"
-	"github.com/space-wanderer/microservices/shared/pkg/interceptors"
-	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
+	"github.com/space-wanderer/microservices/platform/pkg/closer"
+	"github.com/space-wanderer/microservices/platform/pkg/logger"
 )
 
 const configPath = "deploy/compose/inventory/.env"
@@ -31,66 +21,30 @@ func main() {
 		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", config.AppConfig().InventoryGRPC.Address()))
+	appCtx, appCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer appCancel()
+	defer gracefulShutdown()
+
+	closer.Configure(syscall.SIGINT, syscall.SIGTERM)
+
+	a, err := app.New(appCtx)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		logger.Error(appCtx, fmt.Sprintf("failed to create app inventory: %v", err))
+		return
 	}
 
-	defer func() {
-		if cerr := lis.Close(); cerr != nil {
-			log.Fatalf("failed to close listener: %v", cerr)
-		}
-	}()
+	err = a.Run(appCtx)
+	if err != nil {
+		logger.Error(appCtx, fmt.Sprintf("failed to run app inventory: %v", err))
+		return
+	}
+}
 
-	// Подключение к MongoDB
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func gracefulShutdown() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
-		config.AppConfig().Mongo.URI(),
-	))
-	if err != nil {
-		log.Printf("failed to connect to MongoDB: %v", err)
-		return
+	if err := closer.CloseAll(ctx); err != nil {
+		logger.Error(ctx, fmt.Sprintf("failed to close all: %v", err))
 	}
-	defer func() {
-		if err = client.Disconnect(ctx); err != nil {
-			log.Printf("failed to disconnect from MongoDB: %v", err)
-		}
-	}()
-
-	// Проверка подключения
-	err = client.Ping(ctx, nil)
-	if err != nil {
-		log.Printf("failed to ping MongoDB: %v", err)
-		return
-	}
-
-	db := client.Database(config.AppConfig().Mongo.Database())
-
-	s := grpc.NewServer(
-		grpc.UnaryInterceptor(interceptors.UnaryErrorInterceptor()),
-	)
-
-	repo := inventoryRepository.NewRepository(db)
-	service := inventoryService.NewService(repo)
-	api := inventoryV1API.NewAPI(service)
-
-	inventoryV1.RegisterInventoryServiceServer(s, api)
-	reflection.Register(s)
-
-	go func() {
-		log.Printf("gRPS inventory listening on %s", config.AppConfig().InventoryGRPC.Address())
-		err := s.Serve(lis)
-		if err != nil {
-			log.Fatalf("failed to serve: %v", err)
-		}
-	}()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Println("Shutting down gRPC server...")
-	s.GracefulStop()
-	log.Println("gRPC server stopped")
 }

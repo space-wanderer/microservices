@@ -1,8 +1,13 @@
 package env
 
-import "github.com/caarlos0/env/v11"
+import (
+	"net"
+
+	"github.com/caarlos0/env/v11"
+)
 
 type inventoryGRPCEnvConfig struct {
+	Host string `env:"GRPC_HOST,required"`
 	Port string `env:"GRPC_PORT,required"`
 }
 
@@ -20,5 +25,5 @@ func NewInventoryGRPCConfig() (*inventoryGRPCConfig, error) {
 }
 
 func (cfg *inventoryGRPCConfig) Address() string {
-	return cfg.raw.Port
+	return net.JoinHostPort(cfg.raw.Host, cfg.raw.Port)
 }
