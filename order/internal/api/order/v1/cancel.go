@@ -9,10 +9,7 @@ import (
 func (a *api) CancelOrderByUuid(ctx context.Context, params orderV1.CancelOrderByUuidParams) (orderV1.CancelOrderByUuidRes, error) {
 	_, err := a.orderService.CancelOrderByUuid(ctx, params.OrderUUID.String())
 	if err != nil {
-		return &orderV1.ConflictError{
-			Code:    409,
-			Message: "Заказ уже оплачен и не может быть отменен",
-		}, nil
+		return nil, err
 	}
 
 	return &orderV1.CancelOrderByUuidNoContent{}, nil

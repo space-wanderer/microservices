@@ -16,19 +16,13 @@ func (a *api) CreateOrder(ctx context.Context, req *orderV1.CreateOrderRequest) 
 	// Создаем заказ через сервис
 	createdOrder, err := a.orderService.CreateOrder(ctx, *order)
 	if err != nil {
-		return &orderV1.BadGatewayError{
-			Error:   "CREATE_ORDER_ERROR",
-			Message: err.Error(),
-		}, nil
+		return nil, err
 	}
 
 	// Конвертируем ответ
 	orderUUID, err := uuid.Parse(createdOrder.OrderUUID)
 	if err != nil {
-		return &orderV1.BadGatewayError{
-			Error:   "CREATE_ORDER_ERROR",
-			Message: "Invalid order UUID format",
-		}, nil
+		return nil, err
 	}
 	return &orderV1.CreateOrderResponse{
 		OrderUUID:  orderUUID,

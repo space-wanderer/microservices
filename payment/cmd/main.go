@@ -13,7 +13,7 @@ import (
 
 	paymentV1API "github.com/space-wanderer/microservices/payment/internal/api/api/payment/v1"
 	paymentService "github.com/space-wanderer/microservices/payment/internal/service/payment"
-	sharedInterceptors "github.com/space-wanderer/microservices/shared/pkg/interceptors"
+	"github.com/space-wanderer/microservices/shared/pkg/interceptors"
 	paymentV1 "github.com/space-wanderer/microservices/shared/pkg/proto/payment/v1"
 )
 
@@ -32,7 +32,7 @@ func main() {
 	}()
 
 	s := grpc.NewServer(
-		grpc.UnaryInterceptor(sharedInterceptors.UnaryErrorInterceptor()),
+		grpc.UnaryInterceptor(interceptors.UnaryErrorInterceptor()),
 	)
 
 	service := paymentService.NewService()

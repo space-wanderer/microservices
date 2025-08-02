@@ -44,8 +44,8 @@ func ConvertRepoPartToModelPart(repoPart *repoModel.Part) *model.Part {
 		Manufacturer:  manufacturer,
 		Tags:          repoPart.Tags,
 		Metadata:      convertRepoMetadataToModelMetadata(repoPart.Metadata),
-		CreatedAt:     repoPart.CreatedAt,
-		UpdatedAt:     repoPart.UpdatedAt,
+		CreatedAt:     repoPart.CreatedAt.Time(),
+		UpdatedAt:     repoPart.UpdatedAt.Time(),
 	}
 }
 

@@ -1,13 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
@@ -21,6 +26,17 @@ import (
 const grpsPort = 50051
 
 func main() {
+	// Загружаем переменные окружения из .env файла
+	if err := godotenv.Load(); err != nil {
+		log.Printf("⚠️  Не удалось загрузить .env файл: %v", err)
+	}
+
+	// Получаем параметры подключения из переменных окружения
+	mongoURI := os.Getenv("MONGODB_URI")
+	if mongoURI == "" {
+		log.Fatal("❌ MONGODB_URI is not set")
+	}
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpsPort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -32,11 +48,40 @@ func main() {
 		}
 	}()
 
+	// Подключение к MongoDB
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		log.Printf("failed to connect to MongoDB: %v", err)
+		return
+	}
+	defer func() {
+		if err = client.Disconnect(ctx); err != nil {
+			log.Printf("failed to disconnect from MongoDB: %v", err)
+		}
+	}()
+
+	// Проверка подключения
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Printf("failed to ping MongoDB: %v", err)
+		return
+	}
+
+	dbName := os.Getenv("MONGODB_DATABASE")
+	if dbName == "" {
+		dbName = "inventory-service"
+	}
+	db := client.Database(dbName)
+
 	s := grpc.NewServer(
 		grpc.UnaryInterceptor(sharedInterceptors.UnaryErrorInterceptor()),
+
 	)
 
-	repo := inventoryRepository.NewRepository()
+	repo := inventoryRepository.NewRepository(db)
 	service := inventoryService.NewService(repo)
 	api := inventoryV1API.NewAPI(service)
 

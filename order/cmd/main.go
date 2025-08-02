@@ -13,11 +13,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	orderV1API "github.com/space-wanderer/microservices/order/internal/api/order/v1"
 	grpcClient "github.com/space-wanderer/microservices/order/internal/client/grpc"
+	"github.com/space-wanderer/microservices/order/internal/migrator"
 	orderRepository "github.com/space-wanderer/microservices/order/internal/repository/order"
 	orderService "github.com/space-wanderer/microservices/order/internal/service/order"
 	order_v1 "github.com/space-wanderer/microservices/shared/pkg/api/order/v1"
@@ -37,6 +41,12 @@ const (
 )
 
 func main() {
+	// Загружаем переменные окружения из .env файла
+	if err := godotenv.Load(); err != nil {
+		log.Printf("⚠️  Не удалось загрузить .env файл: %v", err)
+	}
+
+	ctx := context.Background()
 	// Создаем gRPC соединения
 	inventoryConn, err := grpc.NewClient(inventoryServiceAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -72,8 +82,32 @@ func main() {
 	inventoryAdapter := grpcClient.NewInventoryClient(inventoryClient)
 	paymentAdapter := grpcClient.NewPaymentClient(paymentClient)
 
+	// Создаем соединение с базой данных
+	pool, err := pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Printf("❌ Ошибка подключения к PostgreSQL: %v", err)
+		return
+	}
+	defer pool.Close()
+
+	// Проверяем, что соединение с базой установлено
+	err = pool.Ping(ctx)
+	if err != nil {
+		log.Printf("База данных недоступна: %v\n", err)
+		return
+	}
+
+	// Инициализируем мигратор
+	db := stdlib.OpenDBFromPool(pool)
+	migratorRunner := migrator.NewMigrator(db, "migrations")
+	err = migratorRunner.Up()
+	if err != nil {
+		log.Printf("Ошибка миграции базы данных: %v\n", err)
+		return
+	}
+
 	// Создаем репозиторий и сервис
-	repo := orderRepository.NewRepository()
+	repo := orderRepository.NewRepository(pool)
 	service := orderService.NewOrderService(repo, inventoryAdapter, paymentAdapter)
 	api := orderV1API.NewAPI(service)
 
