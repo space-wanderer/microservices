@@ -19,5 +19,7 @@ func (a *api) ListParts(ctx context.Context, req *inventoryV1.ListPartsRequest) 
 		grpcParts[i] = converter.ConvertPartToGRPC(part)
 	}
 
-	return &inventoryV1.ListPartsResponse{Parts: grpcParts}, nil
+	return &inventoryV1.ListPartsResponse{
+		Parts: grpcParts,
+	}, nil
 }

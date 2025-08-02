@@ -104,7 +104,7 @@ func (s *PayOrderTestSuite) TestPayOrder_GetOrderError() {
 
 	// Assert
 	assert.Error(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "failed to get order")
+	assert.Equal(s.T(), model.ErrOrderNotFound, err)
 	assert.Equal(s.T(), model.Order{}, result)
 }
 
@@ -132,7 +132,7 @@ func (s *PayOrderTestSuite) TestPayOrder_OrderNotPendingPayment() {
 
 	// Assert
 	assert.Error(s.T(), err)
-	assert.Equal(s.T(), "order is not in pending payment status", err.Error())
+	assert.Equal(s.T(), model.ErrOrderAlreadyPaid, err)
 	assert.Equal(s.T(), model.Order{}, result)
 }
 
@@ -282,6 +282,6 @@ func (s *PayOrderTestSuite) TestPayOrder_CanceledOrder() {
 
 	// Assert
 	assert.Error(s.T(), err)
-	assert.Equal(s.T(), "order is not in pending payment status", err.Error())
+	assert.Equal(s.T(), model.ErrOrderAlreadyPaid, err)
 	assert.Equal(s.T(), model.Order{}, result)
 }

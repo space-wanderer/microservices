@@ -200,7 +200,7 @@ func (s *CreateOrderTestSuite) TestCreateOrder_PartNotFound() {
 
 	// Assert
 	assert.Error(s.T(), err)
-	assert.Contains(s.T(), err.Error(), "part not found")
+	assert.Equal(s.T(), model.ErrOrderNotFound, err)
 	assert.Equal(s.T(), model.Order{}, result)
 }
 

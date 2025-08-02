@@ -11,14 +11,14 @@ import (
 func (s *service) CancelOrderByUuid(ctx context.Context, orderUUID string) (model.Order, error) {
 	repoOrder, err := s.orderRepository.GetOrderByUuid(ctx, orderUUID)
 	if err != nil {
-		return model.Order{}, fmt.Errorf("failed to get order: %w", err)
+		return model.Order{}, model.ErrOrderNotFound
 	}
 
 	// Конвертируем в модель сервиса
 	order := converter.ConvertRepoOrderToModelOrder(repoOrder)
 
 	if order.Status == model.StatusPaid {
-		return model.Order{}, fmt.Errorf("order is already paid")
+		return model.Order{}, model.ErrOrderCannotBeCancelled
 	}
 
 	order.Status = model.StatusCanceled

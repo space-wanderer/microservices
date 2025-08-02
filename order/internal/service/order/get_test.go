@@ -87,7 +87,7 @@ func (s *GetOrderTestSuite) TestGetOrderByUuid_RepositoryError() {
 
 	// Assert
 	assert.Error(s.T(), err)
-	assert.Equal(s.T(), expectedError, err)
+	assert.Equal(s.T(), model.ErrOrderNotFound, err)
 	assert.Equal(s.T(), model.Order{}, result)
 }
 
@@ -103,6 +103,7 @@ func (s *GetOrderTestSuite) TestGetOrderByUuid_EmptyUUID() {
 
 	// Assert
 	assert.Error(s.T(), err)
+	assert.Equal(s.T(), model.ErrOrderNotFound, err)
 	assert.Equal(s.T(), model.Order{}, result)
 }
 
