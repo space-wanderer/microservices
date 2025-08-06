@@ -3,8 +3,9 @@ package integration
 import (
 	"context"
 
-	"github.com/space-wanderer/microservices/platform/pkg/logger"
 	"go.uber.org/zap"
+
+	"github.com/space-wanderer/microservices/platform/pkg/logger"
 )
 
 // teardownTestEnvironment — освобождает все ресурсы тестового окружения

@@ -16,7 +16,7 @@ import (
 	"github.com/space-wanderer/microservices/platform/pkg/logger"
 )
 
-const testsTimeout = 5 * time.Minute
+const testsTimeout = 10 * time.Minute
 
 var (
 	env *TestEnvironment
@@ -39,7 +39,7 @@ var _ = BeforeSuite(func() {
 	suiteCtx, suiteCancel = context.WithTimeout(context.Background(), testsTimeout)
 
 	// Загружаем .env файл и устанавливаем переменные в окружение
-	envVars, err := godotenv.Read(filepath.Join("..", "..", "..", "deploy", "compose", "ufo", ".env"))
+	envVars, err := godotenv.Read(filepath.Join("..", "..", "..", "deploy", "compose", "inventory", ".env"))
 	if err != nil {
 		logger.Fatal(suiteCtx, "Не удалось загрузить .env файл", zap.Error(err))
 	}

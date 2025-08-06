@@ -11,7 +11,7 @@ import (
 
 const (
 	mongoPort           = "27017"
-	mongoStartupTimeout = 1 * time.Minute
+	mongoStartupTimeout = 5 * time.Minute
 
 	mongoEnvUsernameKey = "MONGO_INITDB_ROOT_USERNAME"
 	mongoEnvPasswordKey = "MONGO_INITDB_ROOT_PASSWORD" //nolint:gosec
