@@ -13,8 +13,6 @@ import (
 	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
 )
 
-const partsCollectionName = "parts"
-
 // InsertTestPart — вставляет тестовую деталь в коллекцию Mongo и возвращает её UUID
 func (env *TestEnvironment) InsertTestPart(ctx context.Context) (string, error) {
 	partUUID := gofakeit.UUID()

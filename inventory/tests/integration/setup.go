@@ -10,10 +10,11 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/space-wanderer/microservices/platform/pkg/logger"
+	"github.com/space-wanderer/microservices/platform/pkg/testcontainers"
 	"github.com/space-wanderer/microservices/platform/pkg/testcontainers/app"
 	"github.com/space-wanderer/microservices/platform/pkg/testcontainers/mongo"
 	"github.com/space-wanderer/microservices/platform/pkg/testcontainers/network"
-	testcontainers "github.com/space-wanderer/microservices/platform/pkg/testcontainers/path"
+	"github.com/space-wanderer/microservices/platform/pkg/testcontainers/path"
 )
 
 const (
@@ -37,7 +38,6 @@ type TestEnvironment struct {
 }
 
 // setupTestEnvironment — подготавливает тестовое окружение: сеть, контейнеры и возвращает структуру с ресурсами
-
 func setupTestEnvironment(ctx context.Context) *TestEnvironment {
 	logger.Info(ctx, "Подготавливаем тестовое окружение")
 
@@ -48,10 +48,10 @@ func setupTestEnvironment(ctx context.Context) *TestEnvironment {
 	logger.Info(ctx, "Сеть успешно создана")
 
 	// Получаем переменные окружения для MongoDB с проверкой на наличие
-	mongoUsername := getEnvWithLogging(ctx, "MONGO_INITDB_ROOT_USERNAME")
-	mongoPassword := getEnvWithLogging(ctx, "MONGO_INITDB_ROOT_PASSWORD")
-	mongoImageName := getEnvWithLogging(ctx, "MONGO_IMAGE_NAME")
-	mongoDatabase := getEnvWithLogging(ctx, "MONGO_DATABASE")
+	mongoUsername := getEnvWithLogging(ctx, testcontainers.MongoUsernameKey)
+	mongoPassword := getEnvWithLogging(ctx, testcontainers.MongoPasswordKey)
+	mongoImageName := getEnvWithLogging(ctx, testcontainers.MongoImageNameKey)
+	mongoDatabase := getEnvWithLogging(ctx, testcontainers.MongoDatabaseKey)
 
 	grpcPort := getEnvWithLogging(ctx, grpcPortKey)
 
@@ -72,10 +72,11 @@ func setupTestEnvironment(ctx context.Context) *TestEnvironment {
 	logger.Info(ctx, "Контейнер с MongoDB запущен")
 
 	// Шаг 3: Запускаем контейнер с приложением
+	projectRoot := path.GetProjectRoot()
+
 	appEnv := map[string]string{
 		// Переопределяем хост MongoDB для подключения к контейнеру из testcontainers
-		"MONGO_HOST": generatedMongo.Config().Host,
-		"MONGO_PORT": generatedMongo.Config().Port,
+		testcontainers.MongoHostKey: generatedMongo.Config().ContainerName,
 	}
 
 	// Создаем настраиваемую стратегию ожидания с увеличенным таймаутом
@@ -85,7 +86,7 @@ func setupTestEnvironment(ctx context.Context) *TestEnvironment {
 	appContainer, err := app.NewContainer(ctx,
 		app.WithName(inventoryAppName),
 		app.WithPort(grpcPort),
-		app.WithDockerfile("deploy/docker/inventory", "Dockerfile"),
+		app.WithDockerfile(projectRoot, inventoryDockerfile),
 		app.WithNetwork(generatedNetwork.Name()),
 		app.WithEnv(appEnv),
 		app.WithLogOutput(os.Stdout),
