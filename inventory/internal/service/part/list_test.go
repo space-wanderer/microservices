@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -182,117 +181,45 @@ func TestService_ListParts(t *testing.T) {
 	}
 }
 
-func TestService_ListParts_Integration(t *testing.T) {
-	// Тест с простой реализацией репозитория
-	mockRepo := &mockInventoryRepository{}
+func TestService_ListParts_WithMock(t *testing.T) {
+	// Создаем мок репозитория
+	mockRepo := mocks.NewInventoryRepository(t)
 	service := NewService(mockRepo)
+
+	// Настраиваем ожидания мока
+	expectedParts := []*repoModel.Part{
+		{
+			UUID:          "test-uuid-1",
+			Name:          "Test Engine 1",
+			Category:      repoModel.CategoryEngine,
+			Price:         1000.0,
+			StockQuantity: 10,
+		},
+		{
+			UUID:          "test-uuid-2",
+			Name:          "Test Engine 2",
+			Category:      repoModel.CategoryEngine,
+			Price:         2000.0,
+			StockQuantity: 5,
+		},
+	}
 
 	filter := &model.PartsFilter{
 		Categories: []model.Category{model.CategoryEngine},
 	}
 
+	mockRepo.EXPECT().
+		ListParts(mock.Anything, mock.Anything).
+		Return(expectedParts, nil).
+		Once()
+
+	// Выполняем тест
 	result, err := service.ListParts(context.Background(), filter)
 
+	// Проверяем результаты
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Len(t, result, 2) // mockInventoryRepository возвращает 2 детали
-}
-
-func TestService_ListParts_WithFakeData(t *testing.T) {
-	// Тест с различными типами данных от gofakeit
-	mockRepo := &mockInventoryRepository{}
-	service := NewService(mockRepo)
-
-	// Генерируем случайные данные
-	err := gofakeit.Seed(12345) // Фиксируем seed для воспроизводимости
-	assert.NoError(t, err)
-
-	testCases := []struct {
-		name   string
-		filter *model.PartsFilter
-	}{
-		{
-			name: "Фильтр по категории ENGINE",
-			filter: &model.PartsFilter{
-				Categories: []model.Category{model.CategoryEngine},
-			},
-		},
-		{
-			name: "Фильтр по категории FUEL",
-			filter: &model.PartsFilter{
-				Categories: []model.Category{model.CategoryFuel},
-			},
-		},
-		{
-			name: "Фильтр по UUID",
-			filter: &model.PartsFilter{
-				Uuids: []string{gofakeit.UUID(), gofakeit.UUID()},
-			},
-		},
-		{
-			name: "Фильтр по тегам",
-			filter: &model.PartsFilter{
-				Tags: []string{gofakeit.Word(), gofakeit.Word()},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result, err := service.ListParts(context.Background(), tc.filter)
-
-			assert.NoError(t, err)
-			assert.NotNil(t, result)
-			assert.Len(t, result, 2) // mockInventoryRepository возвращает 2 детали
-		})
-	}
-}
-
-// Обновляем mockInventoryRepository для поддержки ListParts
-func (m *mockInventoryRepository) ListParts(ctx context.Context, filter *repoModel.PartsFilter) ([]*repoModel.Part, error) {
-	// Возвращаем 2 тестовые детали
-	return []*repoModel.Part{
-		{
-			UUID:          gofakeit.UUID(),
-			Name:          gofakeit.Car().Model,
-			Description:   gofakeit.LoremIpsumSentence(10),
-			Price:         gofakeit.Float64Range(100, 10000),
-			StockQuantity: int64(gofakeit.IntRange(1, 100)),
-			Category:      repoModel.CategoryEngine,
-			Dimensions: &repoModel.Dimensions{
-				Length: gofakeit.Float64Range(10, 100),
-				Width:  gofakeit.Float64Range(5, 50),
-				Height: gofakeit.Float64Range(2, 20),
-				Weight: gofakeit.Float64Range(1, 100),
-			},
-			Manufacturer: &repoModel.Manufacturer{
-				Name:    gofakeit.Company(),
-				Country: gofakeit.Country(),
-				Website: gofakeit.URL(),
-			},
-			Tags:     []string{gofakeit.Word(), gofakeit.Word()},
-			Metadata: map[string]*repoModel.Value{},
-		},
-		{
-			UUID:          gofakeit.UUID(),
-			Name:          gofakeit.Car().Model,
-			Description:   gofakeit.LoremIpsumSentence(10),
-			Price:         gofakeit.Float64Range(100, 10000),
-			StockQuantity: int64(gofakeit.IntRange(1, 100)),
-			Category:      repoModel.CategoryFuel,
-			Dimensions: &repoModel.Dimensions{
-				Length: gofakeit.Float64Range(10, 100),
-				Width:  gofakeit.Float64Range(5, 50),
-				Height: gofakeit.Float64Range(2, 20),
-				Weight: gofakeit.Float64Range(1, 100),
-			},
-			Manufacturer: &repoModel.Manufacturer{
-				Name:    gofakeit.Company(),
-				Country: gofakeit.Country(),
-				Website: gofakeit.URL(),
-			},
-			Tags:     []string{gofakeit.Word(), gofakeit.Word()},
-			Metadata: map[string]*repoModel.Value{},
-		},
-	}, nil
+	assert.Len(t, result, 2)
+	assert.Equal(t, "test-uuid-1", result[0].UUID)
+	assert.Equal(t, "test-uuid-2", result[1].UUID)
 }

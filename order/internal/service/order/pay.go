@@ -2,7 +2,6 @@ package order
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/space-wanderer/microservices/order/internal/converter"
@@ -12,7 +11,7 @@ import (
 func (s *service) PayOrder(ctx context.Context, orderUUID, userUUID string, paymentMethod model.PaymentMethod) (model.Order, error) {
 	repoOrder, err := s.orderRepository.GetOrderByUuid(ctx, orderUUID)
 	if err != nil {
-		return model.Order{}, fmt.Errorf("failed to get order: %w", err)
+		return model.Order{}, model.ErrOrderNotFound
 	}
 
 	// Конвертируем в модель сервиса
@@ -20,7 +19,7 @@ func (s *service) PayOrder(ctx context.Context, orderUUID, userUUID string, paym
 
 	// Проверяем статус заказа
 	if order.Status != model.StatusPendingPayment {
-		return model.Order{}, errors.New("order is not in pending payment status")
+		return model.Order{}, model.ErrOrderAlreadyPaid
 	}
 
 	// Обрабатываем платеж через PaymentService
