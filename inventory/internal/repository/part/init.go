@@ -15,8 +15,7 @@ type repository struct {
 	collection *mongo.Collection
 }
 
-func NewRepository(db *mongo.Database) *repository {
-	ctx := context.Background()
+func NewRepository(ctx context.Context, db *mongo.Database) *repository {
 	collection := db.Collection("parts")
 	if err := InitSampleData(collection, ctx); err != nil {
 		// Логируем ошибку, но не прерываем работу

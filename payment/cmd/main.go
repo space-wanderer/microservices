@@ -1,58 +1,50 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"log"
-	"net"
-	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-
-	paymentV1API "github.com/space-wanderer/microservices/payment/internal/api/api/payment/v1"
-	paymentService "github.com/space-wanderer/microservices/payment/internal/service/payment"
-	"github.com/space-wanderer/microservices/shared/pkg/interceptors"
-	paymentV1 "github.com/space-wanderer/microservices/shared/pkg/proto/payment/v1"
+	"github.com/space-wanderer/microservices/payment/internal/app"
+	"github.com/space-wanderer/microservices/payment/internal/config"
+	"github.com/space-wanderer/microservices/platform/pkg/closer"
+	"github.com/space-wanderer/microservices/platform/pkg/logger"
 )
 
-const grpsPort = 50052
+const configPath = "deploy/compose/payment/.env"
 
 func main() {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpsPort))
+	err := config.Load(configPath)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
 
-	defer func() {
-		if cerr := lis.Close(); cerr != nil {
-			log.Fatalf("failed to close listener: %v", cerr)
-		}
-	}()
+	appCtx, appCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer appCancel()
+	defer gracefulShutdown()
 
-	s := grpc.NewServer(
-		grpc.UnaryInterceptor(interceptors.UnaryErrorInterceptor()),
-	)
+	closer.Configure(syscall.SIGINT, syscall.SIGTERM)
 
-	service := paymentService.NewService()
-	api := paymentV1API.NewAPI(service)
+	a, err := app.New(appCtx)
+	if err != nil {
+		logger.Error(appCtx, fmt.Sprintf("failed to create app: %v", err))
+		return
+	}
 
-	paymentV1.RegisterPaymentServiceServer(s, api)
-	reflection.Register(s)
+	err = a.Run(appCtx)
+	if err != nil {
+		logger.Error(appCtx, fmt.Sprintf("failed to run app: %v", err))
+		return
+	}
+}
 
-	go func() {
-		log.Printf("gRPS payment listening on %d", grpsPort)
-		err := s.Serve(lis)
-		if err != nil {
-			log.Fatalf("failed to serve: %v", err)
-		}
-	}()
+func gracefulShutdown() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Println("Shutting down gRPC payment server...")
-	s.GracefulStop()
-	log.Println("gRPC payment server stopped")
+	if err := closer.CloseAll(ctx); err != nil {
+		logger.Error(ctx, fmt.Sprintf("failed to close all: %v", err))
+	}
 }

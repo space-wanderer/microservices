@@ -1,4 +1,4 @@
-package migrator
+package pg
 
 import (
 	"database/sql"
@@ -20,6 +20,14 @@ func NewMigrator(db *sql.DB, migrationsDir string) *Migrator {
 
 func (m *Migrator) Up() error {
 	err := goose.Up(m.db, m.migrationsDir)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Migrator) Down() error {
+	err := goose.Down(m.db, m.migrationsDir)
 	if err != nil {
 		return err
 	}
