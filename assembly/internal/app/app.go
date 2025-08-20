@@ -40,7 +40,6 @@ func (a *App) Run(ctx context.Context) error {
 
 	logger.Info(ctx, "🛑 Assembly Service shutting down...")
 
-	// Graceful shutdown
 	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
