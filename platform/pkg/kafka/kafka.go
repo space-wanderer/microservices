@@ -1,6 +1,10 @@
 package kafka
 
-import "context"
+import (
+	"context"
+
+	"github.com/space-wanderer/microservices/platform/pkg/kafka/consumer"
+)
 
 type Consumer interface {
 	Consume(ctx context.Context, handler consumer.MessageHandler) error
