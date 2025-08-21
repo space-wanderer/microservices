@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/IBM/sarama"
+
 	"github.com/space-wanderer/microservices/assembly/internal/config"
 	"github.com/space-wanderer/microservices/assembly/internal/converter/kafka"
 	"github.com/space-wanderer/microservices/assembly/internal/converter/kafka/decoder"

@@ -1,24 +1,64 @@
-package env
+package config
 
-import "github.com/caarlos0/env/v11"
+import (
+	"os"
 
-type kafkaEnvConfig struct {
-	Brokers []string `env:"KAFKA_BROKERS" envSeparator:","`
+	"github.com/joho/godotenv"
+
+	"github.com/space-wanderer/microservices/notification/internal/config/env"
+)
+
+var appConfig *config
+
+type config struct {
+	Logger                 LoggerConfig
+	Kafka                  KafkaConfig
+	OrderPaidConsumer      OrderPaidConsumerConfig
+	OrderAssembledConsumer OrderAssembledConsumerConfig
+	TelegramBot            TelegramBotConfig
 }
 
-type kafkaConfig struct {
-	raw kafkaEnvConfig
-}
-
-func NewKafkaConfig() (*kafkaConfig, error) {
-	var raw kafkaEnvConfig
-	if err := env.Parse(&raw); err != nil {
-		return nil, err
+func Load(path ...string) error {
+	err := godotenv.Load(path...)
+	if err != nil && !os.IsNotExist(err) {
+		return err
 	}
 
-	return &kafkaConfig{raw: raw}, nil
+	loggerCfg, err := env.NewLoggerConfig()
+	if err != nil {
+		return err
+	}
+
+	kafkaCfg, err := env.NewKafkaConfig()
+	if err != nil {
+		return err
+	}
+
+	orderPaidConsumerCfg, err := env.NewOrderPaidConsumerConfig()
+	if err != nil {
+		return err
+	}
+
+	orderAssembledConsumerCfg, err := env.NewOrderAssembledConsumerConfig()
+	if err != nil {
+		return err
+	}
+
+	telegramBotCfg, err := env.NewTelegramBotConfig()
+	if err != nil {
+		return err
+	}
+
+	appConfig = &config{
+		Logger:                 loggerCfg,
+		Kafka:                  kafkaCfg,
+		OrderPaidConsumer:      orderPaidConsumerCfg,
+		OrderAssembledConsumer: orderAssembledConsumerCfg,
+		TelegramBot:            telegramBotCfg,
+	}
+	return nil
 }
 
-func (cfg *kafkaConfig) Brokers() []string {
-	return cfg.raw.Brokers
+func AppConfig() *config {
+	return appConfig
 }
