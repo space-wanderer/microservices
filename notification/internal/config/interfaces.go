@@ -21,5 +21,4 @@ type OrderAssembledConsumerConfig interface {
 
 type TelegramBotConfig interface {
 	Token() string
-	ChatID() string
 }

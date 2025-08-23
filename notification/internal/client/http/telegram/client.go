@@ -2,35 +2,32 @@ package telegram
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/go-telegram/bot"
 )
 
-type Client struct {
+type client struct {
 	bot *bot.Bot
 }
 
 // NewClient создает новый клиент для Telegram Bot API
-func NewClient(bot *bot.Bot) *Client {
-	return &Client{
+func NewClient(bot *bot.Bot) *client {
+	return &client{
 		bot: bot,
 	}
 }
 
 // SendMessage отправляет сообщение в указанный чат
-func (c *Client) SendMessage(ctx context.Context, chatID, text string) error {
-	// Конвертируем строковый chatID в int64
-	chatIDInt, err := strconv.ParseInt(chatID, 10, 64)
+func (c *client) SendMessage(ctx context.Context, chatID int64, text string) error {
+	_, err := c.bot.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:    chatID,
+		Text:      text,
+		ParseMode: "Markdown",
+	})
+
 	if err != nil {
 		return err
 	}
 
-	_, err = c.bot.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    chatIDInt,
-		Text:      text,
-		ParseMode: "HTML",
-	})
-
-	return err
+	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/go-telegram/bot"
 
+	"github.com/space-wanderer/microservices/notification/internal/client/http"
 	"github.com/space-wanderer/microservices/notification/internal/client/http/telegram"
 	"github.com/space-wanderer/microservices/notification/internal/config"
 	"github.com/space-wanderer/microservices/notification/internal/converter/kafka"
@@ -28,8 +29,8 @@ type diContainer struct {
 	orderAssembledDecoder kafka.ShipAssembledDecoder
 
 	telegramBot     *bot.Bot
-	telegramClient  *telegram.Client
-	telegramService *telegramService.Service
+	telegramClient  http.TelegramClient
+	telegramService service.TelegramService
 }
 
 func NewDiContainer() *diContainer {
@@ -107,17 +108,16 @@ func (d *diContainer) TelegramBot(ctx context.Context) *bot.Bot {
 	return d.telegramBot
 }
 
-func (d *diContainer) TelegramClient(ctx context.Context) *telegram.Client {
+func (d *diContainer) TelegramClient(ctx context.Context) http.TelegramClient {
 	if d.telegramClient == nil {
 		d.telegramClient = telegram.NewClient(d.TelegramBot(ctx))
 	}
 	return d.telegramClient
 }
 
-func (d *diContainer) TelegramService(ctx context.Context) *telegramService.Service {
+func (d *diContainer) TelegramService(ctx context.Context) service.TelegramService {
 	if d.telegramService == nil {
-		cfg := config.AppConfig()
-		d.telegramService = telegramService.NewService(d.TelegramClient(ctx), cfg.TelegramBot)
+		d.telegramService = telegramService.NewService(d.TelegramClient(ctx))
 	}
 	return d.telegramService
 }

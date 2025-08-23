@@ -7,9 +7,10 @@ import (
 	"text/template"
 
 	"github.com/space-wanderer/microservices/notification/internal/client/http"
-	"github.com/space-wanderer/microservices/notification/internal/config"
 	"github.com/space-wanderer/microservices/notification/internal/model"
 )
+
+const chatID = 116626327
 
 //go:embed templates/paid_notification.tmpl
 //go:embed templates/assembled_notification.tmpl
@@ -34,25 +35,23 @@ var notificaitonTemplate = template.Must(template.ParseFS(
 	"templates/assembled_notification.tmpl",
 ))
 
-type Service struct {
+type service struct {
 	telegramClient http.TelegramClient
-	telegramConfig config.TelegramBotConfig
 }
 
-func NewService(telegramClient http.TelegramClient, telegramConfig config.TelegramBotConfig) *Service {
-	return &Service{
+func NewService(telegramClient http.TelegramClient) *service {
+	return &service{
 		telegramClient: telegramClient,
-		telegramConfig: telegramConfig,
 	}
 }
 
-func (s *Service) SendOrderPaidNotification(ctx context.Context, uuid string, event model.OrderPaidEvent) error {
+func (s *service) SendOrderPaidNotification(ctx context.Context, uuid string, event model.OrderPaidEvent) error {
 	message, err := s.buildOrderPaidMessage(uuid, event)
 	if err != nil {
 		return err
 	}
 
-	err = s.telegramClient.SendMessage(ctx, s.telegramConfig.ChatID(), message)
+	err = s.telegramClient.SendMessage(ctx, chatID, message)
 	if err != nil {
 		return err
 	}
@@ -60,7 +59,7 @@ func (s *Service) SendOrderPaidNotification(ctx context.Context, uuid string, ev
 	return nil
 }
 
-func (s *Service) buildOrderPaidMessage(uuid string, event model.OrderPaidEvent) (string, error) {
+func (s *service) buildOrderPaidMessage(uuid string, event model.OrderPaidEvent) (string, error) {
 	data := orderPaidTemplateData{
 		OrderUUID:       uuid,
 		UserUUID:        event.UserUUID,
@@ -77,16 +76,16 @@ func (s *Service) buildOrderPaidMessage(uuid string, event model.OrderPaidEvent)
 	return buf.String(), nil
 }
 
-func (s *Service) SendShipAssembledNotification(ctx context.Context, uuid string, event model.ShipAssembledEvent) error {
+func (s *service) SendShipAssembledNotification(ctx context.Context, uuid string, event model.ShipAssembledEvent) error {
 	message, err := s.buildShipAssembledMessage(uuid, event)
 	if err != nil {
 		return err
 	}
 
-	return s.telegramClient.SendMessage(ctx, s.telegramConfig.ChatID(), message)
+	return s.telegramClient.SendMessage(ctx, chatID, message)
 }
 
-func (s *Service) buildShipAssembledMessage(uuid string, event model.ShipAssembledEvent) (string, error) {
+func (s *service) buildShipAssembledMessage(uuid string, event model.ShipAssembledEvent) (string, error) {
 	data := shipAssembledTemplateData{
 		OrderUUID:    uuid,
 		UserUUID:     event.UserUUID,

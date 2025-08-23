@@ -3,21 +3,20 @@ package order_assembled_consumer
 import (
 	"context"
 
-	"go.uber.org/zap"
-
 	kafkaConverter "github.com/space-wanderer/microservices/notification/internal/converter/kafka"
-	"github.com/space-wanderer/microservices/notification/internal/service/telegram"
+	telegramService "github.com/space-wanderer/microservices/notification/internal/service"
 	"github.com/space-wanderer/microservices/platform/pkg/kafka"
 	"github.com/space-wanderer/microservices/platform/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type service struct {
 	orderAssembledRecodeConsumer kafka.Consumer
 	orderAssembledRecodeDecoder  kafkaConverter.ShipAssembledDecoder
-	telegramService              *telegram.Service
+	telegramService              telegramService.TelegramService
 }
 
-func NewService(orderAssembledRecodeConsumer kafka.Consumer, orderAssembledRecodeDecoder kafkaConverter.ShipAssembledDecoder, telegramService *telegram.Service) *service {
+func NewService(orderAssembledRecodeConsumer kafka.Consumer, orderAssembledRecodeDecoder kafkaConverter.ShipAssembledDecoder, telegramService telegramService.TelegramService) *service {
 	return &service{
 		orderAssembledRecodeConsumer: orderAssembledRecodeConsumer,
 		orderAssembledRecodeDecoder:  orderAssembledRecodeDecoder,
