@@ -11,11 +11,14 @@ import (
 var appConfig *config
 
 type config struct {
-	Logger             LoggerConfig
-	OrderHTTP          OrderHTTPConfig
-	OrderPaymentGRPC   OrderPaymentGRPCConfig
-	OrderInventoryGRPC OrderInventoryGRPCConfig
-	Postgres           PosgresConfig
+	Logger                 LoggerConfig
+	OrderHTTP              OrderHTTPConfig
+	OrderPaymentGRPC       OrderPaymentGRPCConfig
+	OrderInventoryGRPC     OrderInventoryGRPCConfig
+	Postgres               PosgresConfig
+	Kafka                  KafkaConfig
+	OrderAssembledConsumer OrderAssembledConsumerConfig
+	OrderPaidProducer      OrderPaidProducerConfig
 }
 
 func Load(path ...string) error {
@@ -49,12 +52,30 @@ func Load(path ...string) error {
 		return err
 	}
 
+	kafkaConfig, err := env.NewKafkaConfig()
+	if err != nil {
+		return err
+	}
+
+	orderAssembledConsumerConfig, err := env.NewOrderAssembledConsumerConfig()
+	if err != nil {
+		return err
+	}
+
+	orderPaidProducerConfig, err := env.NewOrderPaidProducerConfig()
+	if err != nil {
+		return err
+	}
+
 	appConfig = &config{
-		Logger:             loggerCfg,
-		OrderHTTP:          orderHTTPConfig,
-		OrderPaymentGRPC:   orderPaymentGRPCConfig,
-		OrderInventoryGRPC: orderInventoryGRPCConfig,
-		Postgres:           postgresConfig,
+		Logger:                 loggerCfg,
+		OrderHTTP:              orderHTTPConfig,
+		OrderPaymentGRPC:       orderPaymentGRPCConfig,
+		OrderInventoryGRPC:     orderInventoryGRPCConfig,
+		Postgres:               postgresConfig,
+		Kafka:                  kafkaConfig,
+		OrderAssembledConsumer: orderAssembledConsumerConfig,
+		OrderPaidProducer:      orderPaidProducerConfig,
 	}
 
 	return nil

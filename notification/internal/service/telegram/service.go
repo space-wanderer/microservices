@@ -7,10 +7,9 @@ import (
 	"text/template"
 
 	"github.com/space-wanderer/microservices/notification/internal/client/http"
+	"github.com/space-wanderer/microservices/notification/internal/config"
 	"github.com/space-wanderer/microservices/notification/internal/model"
 )
-
-const chatID = "8395613142"
 
 //go:embed templates/paid_notification.tmpl
 //go:embed templates/assembled_notification.tmpl
@@ -37,11 +36,13 @@ var notificaitonTemplate = template.Must(template.ParseFS(
 
 type Service struct {
 	telegramClient http.TelegramClient
+	telegramConfig config.TelegramBotConfig
 }
 
-func NewService(telegramClient http.TelegramClient) *Service {
+func NewService(telegramClient http.TelegramClient, telegramConfig config.TelegramBotConfig) *Service {
 	return &Service{
 		telegramClient: telegramClient,
+		telegramConfig: telegramConfig,
 	}
 }
 
@@ -51,7 +52,7 @@ func (s *Service) SendOrderPaidNotification(ctx context.Context, uuid string, ev
 		return err
 	}
 
-	err = s.telegramClient.SendMessage(ctx, chatID, message)
+	err = s.telegramClient.SendMessage(ctx, s.telegramConfig.ChatID(), message)
 	if err != nil {
 		return err
 	}
@@ -82,7 +83,7 @@ func (s *Service) SendShipAssembledNotification(ctx context.Context, uuid string
 		return err
 	}
 
-	return s.telegramClient.SendMessage(ctx, chatID, message)
+	return s.telegramClient.SendMessage(ctx, s.telegramConfig.ChatID(), message)
 }
 
 func (s *Service) buildShipAssembledMessage(uuid string, event model.ShipAssembledEvent) (string, error) {

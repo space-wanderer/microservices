@@ -116,7 +116,8 @@ func (d *diContainer) TelegramClient(ctx context.Context) *telegram.Client {
 
 func (d *diContainer) TelegramService(ctx context.Context) *telegramService.Service {
 	if d.telegramService == nil {
-		d.telegramService = telegramService.NewService(d.TelegramClient(ctx))
+		cfg := config.AppConfig()
+		d.telegramService = telegramService.NewService(d.TelegramClient(ctx), cfg.TelegramBot)
 	}
 	return d.telegramService
 }

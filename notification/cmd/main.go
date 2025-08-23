@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -12,7 +13,14 @@ import (
 	"github.com/space-wanderer/microservices/platform/pkg/logger"
 )
 
+const configPath = "deploy/compose/notification/.env"
+
 func main() {
+	err := config.Load(configPath)
+	if err != nil {
+		panic(fmt.Sprintf("failed to load config: %v", err))
+	}
+
 	if err := config.Load(); err != nil {
 		log.Fatalf("❌ Ошибка загрузки конфигурации: %v", err)
 	}

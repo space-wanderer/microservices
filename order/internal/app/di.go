@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/IBM/sarama"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"google.golang.org/grpc"
@@ -12,10 +13,15 @@ import (
 	orderV1API "github.com/space-wanderer/microservices/order/internal/api/order/v1"
 	grpcClient "github.com/space-wanderer/microservices/order/internal/client/grpc"
 	"github.com/space-wanderer/microservices/order/internal/config"
+	kafkaConverter "github.com/space-wanderer/microservices/order/internal/converter/kafka"
+	orderProducer "github.com/space-wanderer/microservices/order/internal/converter/kafka/producer"
 	"github.com/space-wanderer/microservices/order/internal/repository"
 	orderRepository "github.com/space-wanderer/microservices/order/internal/repository/order"
 	"github.com/space-wanderer/microservices/order/internal/service"
 	orderService "github.com/space-wanderer/microservices/order/internal/service/order"
+	platformKafka "github.com/space-wanderer/microservices/platform/pkg/kafka"
+	"github.com/space-wanderer/microservices/platform/pkg/kafka/producer"
+	"github.com/space-wanderer/microservices/platform/pkg/logger"
 	migrator "github.com/space-wanderer/microservices/platform/pkg/migrator/pg"
 	order_v1 "github.com/space-wanderer/microservices/shared/pkg/api/order/v1"
 	inventory_v1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
@@ -41,6 +47,10 @@ type diContainer struct {
 	pgPool *pgxpool.Pool
 
 	pgMigrator *migrator.Migrator
+
+	// Kafka Producer для OrderPaidEvent
+	orderPaidProducer        platformKafka.Producer
+	orderPaidProducerService kafkaConverter.OrderPaidProducer
 }
 
 func NewDiContainer() *diContainer {
@@ -56,7 +66,7 @@ func (d *diContainer) OrderV1API(ctx context.Context) order_v1.Handler {
 
 func (d *diContainer) OrderService(ctx context.Context) service.OrderService {
 	if d.orderService == nil {
-		d.orderService = orderService.NewOrderService(d.OrderRepository(ctx), d.InventoryGRPCClient(ctx), d.PaymentGRPCClient(ctx))
+		d.orderService = orderService.NewOrderService(d.OrderRepository(ctx), d.InventoryGRPCClient(ctx), d.PaymentGRPCClient(ctx), d.OrderPaidProducerService(ctx))
 	}
 	return d.orderService
 }
@@ -136,4 +146,35 @@ func (d *diContainer) PaymentClient(ctx context.Context) payment_v1.PaymentServi
 		d.paymentClient = payment_v1.NewPaymentServiceClient(d.paymentConn)
 	}
 	return d.paymentClient
+}
+
+// OrderPaidProducer создает Kafka producer для отправки OrderPaidEvent
+func (d *diContainer) OrderPaidProducer(ctx context.Context) platformKafka.Producer {
+	if d.orderPaidProducer == nil {
+		cfg := config.AppConfig()
+
+		// Создаем Sarama producer
+		saramaConfig := sarama.NewConfig()
+		saramaConfig.Producer.Return.Successes = true
+		saramaConfig.Producer.RequiredAcks = sarama.WaitForAll
+		saramaConfig.Producer.Retry.Max = 3
+
+		saramaProducer, err := sarama.NewSyncProducer(cfg.Kafka.Brokers(), saramaConfig)
+		if err != nil {
+			log.Printf("❌ Ошибка создания Sarama producer: %v", err)
+			return nil
+		}
+
+		// Создаем platform producer
+		d.orderPaidProducer = producer.NewProducer(saramaProducer, cfg.OrderPaidProducer.TopicName(), logger.Logger())
+	}
+	return d.orderPaidProducer
+}
+
+// OrderPaidProducerService создает сервис для отправки OrderPaidEvent
+func (d *diContainer) OrderPaidProducerService(ctx context.Context) kafkaConverter.OrderPaidProducer {
+	if d.orderPaidProducerService == nil {
+		d.orderPaidProducerService = orderProducer.NewOrderProducer(d.OrderPaidProducer(ctx))
+	}
+	return d.orderPaidProducerService
 }

@@ -2,15 +2,24 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"syscall"
 
 	"github.com/space-wanderer/microservices/assembly/internal/app"
+	"github.com/space-wanderer/microservices/assembly/internal/config"
 	"github.com/space-wanderer/microservices/platform/pkg/closer"
 )
 
+const configPath = "deploy/compose/assembly/.env"
+
 func main() {
 	ctx := context.Background()
+
+	err := config.Load(configPath)
+	if err != nil {
+		panic(fmt.Sprintf("failed to load config: %v", err))
+	}
 
 	// Создаем приложение
 	application, err := app.New(ctx)

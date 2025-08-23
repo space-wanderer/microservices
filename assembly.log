@@ -1,0 +1,2 @@
+{"level":"INFO","timestamp":"2025-08-23T16:43:54.461+0300","caller":"app/app.go:29","message":"🚀 Assembly Service started"}
+{"level":"INFO","timestamp":"2025-08-23T16:43:54.537+0300","caller":"order_consumer/consumer.go:26","message":"Starting order consumer"}

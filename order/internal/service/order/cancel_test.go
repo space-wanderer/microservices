@@ -26,7 +26,7 @@ func (s *CancelOrderTestSuite) SetupTest() {
 	s.orderRepository = repoMocks.NewOrderRepository(s.T())
 	s.inventoryClient = mocks.NewInventoryClient(s.T())
 	s.paymentClient = mocks.NewPaymentClient(s.T())
-	s.service = NewOrderService(s.orderRepository, s.inventoryClient, s.paymentClient)
+	s.service = NewOrderService(s.orderRepository, s.inventoryClient, s.paymentClient, nil)
 }
 
 func (s *CancelOrderTestSuite) TearDownTest() {
