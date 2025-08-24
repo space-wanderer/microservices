@@ -34,7 +34,7 @@ func NewDiContainer() *diContainer {
 
 func (d *diContainer) ConsumerService(ctx context.Context) service.ConsumerService {
 	if d.consumerService == nil {
-		d.consumerService = consumerService.NewService(d.OrderPaidConsumer(ctx), d.OrderPaidDecoder(ctx))
+		d.consumerService = consumerService.NewService(d.OrderPaidConsumer(ctx), d.OrderPaidDecoder(ctx), d.ProducerService(ctx))
 	}
 	return d.consumerService
 }

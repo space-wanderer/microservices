@@ -117,6 +117,8 @@ func convertRepoStatusToModelStatus(repoStatus repoModel.Status) model.Status {
 		return model.StatusPaid
 	case repoModel.StatusCanceled:
 		return model.StatusCanceled
+	case repoModel.StatusAssembled:
+		return model.StatusAssembled
 	default:
 		return model.StatusPendingPayment
 	}
@@ -131,6 +133,8 @@ func convertModelStatusToRepoStatus(modelStatus model.Status) repoModel.Status {
 		return repoModel.StatusPaid
 	case model.StatusCanceled:
 		return repoModel.StatusCanceled
+	case model.StatusAssembled:
+		return repoModel.StatusAssembled
 	default:
 		return repoModel.StatusPendingPayment
 	}
@@ -145,6 +149,8 @@ func convertModelStatusToOrderStatus(modelStatus model.Status) order_v1.OrderSta
 		return order_v1.OrderStatusPAID
 	case model.StatusCanceled:
 		return order_v1.OrderStatusCANCELLED
+	case model.StatusAssembled:
+		return order_v1.OrderStatusASSEMBLED
 	default:
 		return order_v1.OrderStatusPENDINGPAYMENT
 	}

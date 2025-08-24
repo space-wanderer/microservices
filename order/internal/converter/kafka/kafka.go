@@ -10,3 +10,8 @@ import (
 type OrderPaidProducer interface {
 	ProduceOrderPaidEvent(ctx context.Context, event model.OrderPaidEvent) error
 }
+
+// ShipAssembledDecoder интерфейс для декодирования ShipAssembledEvent
+type ShipAssembledDecoder interface {
+	Decode(data []byte) model.ShipAssembledEvent
+}

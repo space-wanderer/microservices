@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	kafkaConverter "github.com/space-wanderer/microservices/assembly/internal/converter/kafka"
+	assemblyService "github.com/space-wanderer/microservices/assembly/internal/service"
 	"github.com/space-wanderer/microservices/platform/pkg/kafka"
 	"github.com/space-wanderer/microservices/platform/pkg/logger"
 )
@@ -13,12 +14,14 @@ import (
 type service struct {
 	assemblyRecodeConsumer kafka.Consumer
 	assemblyRecodedDecoder kafkaConverter.AssemblyRecodedDecoder
+	producerService        assemblyService.ProducerService
 }
 
-func NewService(assemblyRecodeConsumer kafka.Consumer, assemblyRecodedDecoder kafkaConverter.AssemblyRecodedDecoder) *service {
+func NewService(assemblyRecodeConsumer kafka.Consumer, assemblyRecodedDecoder kafkaConverter.AssemblyRecodedDecoder, producerService assemblyService.ProducerService) *service {
 	return &service{
 		assemblyRecodeConsumer: assemblyRecodeConsumer,
 		assemblyRecodedDecoder: assemblyRecodedDecoder,
+		producerService:        producerService,
 	}
 }
 

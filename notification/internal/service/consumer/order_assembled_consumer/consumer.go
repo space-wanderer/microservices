@@ -3,11 +3,12 @@ package order_assembled_consumer
 import (
 	"context"
 
+	"go.uber.org/zap"
+
 	kafkaConverter "github.com/space-wanderer/microservices/notification/internal/converter/kafka"
 	telegramService "github.com/space-wanderer/microservices/notification/internal/service"
 	"github.com/space-wanderer/microservices/platform/pkg/kafka"
 	"github.com/space-wanderer/microservices/platform/pkg/logger"
-	"go.uber.org/zap"
 )
 
 type service struct {

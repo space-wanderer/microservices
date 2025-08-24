@@ -24,7 +24,6 @@ func (c *client) SendMessage(ctx context.Context, chatID int64, text string) err
 		Text:      text,
 		ParseMode: "Markdown",
 	})
-
 	if err != nil {
 		return err
 	}
