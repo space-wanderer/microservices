@@ -10,7 +10,7 @@ import (
 	"github.com/space-wanderer/microservices/notification/internal/model"
 )
 
-const chatID = 116626327
+const chatID = 236673056
 
 //go:embed templates/paid_notification.tmpl
 //go:embed templates/assembled_notification.tmpl
