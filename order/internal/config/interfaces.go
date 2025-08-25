@@ -22,3 +22,16 @@ type PosgresConfig interface {
 	Database() string
 	MigrationDir() string
 }
+
+type KafkaConfig interface {
+	Brokers() []string
+}
+
+type OrderAssembledConsumerConfig interface {
+	TopicName() string
+	ConsumerGroupID() string
+}
+
+type OrderPaidProducerConfig interface {
+	TopicName() string
+}

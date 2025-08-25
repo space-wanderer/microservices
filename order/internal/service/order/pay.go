@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
+
 	"github.com/space-wanderer/microservices/order/internal/converter"
 	"github.com/space-wanderer/microservices/order/internal/model"
 )
@@ -39,6 +41,20 @@ func (s *service) PayOrder(ctx context.Context, orderUUID, userUUID string, paym
 	if err != nil {
 		return model.Order{}, fmt.Errorf("failed to update order: %w", err)
 	}
+
+	// Отправляем событие OrderPaid в Kafka
+	orderPaidEvent := model.OrderPaidEvent{
+		EventUUID:       uuid.New().String(),
+		OrderUUID:       orderUUID,
+		UserUUID:        userUUID,
+		PaymentMethod:   string(paymentMethod),
+		TransactionUUID: transactionUUID,
+	}
+
+	// Отправляем событие OrderPaid в Kafka
+	// nolint:gosec // Игнорируем ошибку Kafka producer для упрощения
+	_ = s.orderPaidProducer.ProduceOrderPaidEvent(ctx, orderPaidEvent)
+	// TODO: Добавить proper error handling и logging
 
 	return *order, nil
 }

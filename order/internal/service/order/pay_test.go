@@ -6,33 +6,38 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/space-wanderer/microservices/order/internal/client/grpc/mocks"
+	grpcMocks "github.com/space-wanderer/microservices/order/internal/client/grpc/mocks"
 	"github.com/space-wanderer/microservices/order/internal/model"
 	repoMocks "github.com/space-wanderer/microservices/order/internal/repository/mocks"
 	repoModel "github.com/space-wanderer/microservices/order/internal/repository/model"
+	serviceMocks "github.com/space-wanderer/microservices/order/internal/service/mocks"
 )
 
 type PayOrderTestSuite struct {
 	suite.Suite
-	orderRepository *repoMocks.OrderRepository
-	inventoryClient *mocks.InventoryClient
-	paymentClient   *mocks.PaymentClient
-	service         *service
+	orderRepository   *repoMocks.OrderRepository
+	inventoryClient   *grpcMocks.InventoryClient
+	paymentClient     *grpcMocks.PaymentClient
+	orderPaidProducer *serviceMocks.MockOrderPaidProducer
+	service           *service
 }
 
 func (s *PayOrderTestSuite) SetupTest() {
 	s.orderRepository = repoMocks.NewOrderRepository(s.T())
-	s.inventoryClient = mocks.NewInventoryClient(s.T())
-	s.paymentClient = mocks.NewPaymentClient(s.T())
-	s.service = NewOrderService(s.orderRepository, s.inventoryClient, s.paymentClient)
+	s.inventoryClient = grpcMocks.NewInventoryClient(s.T())
+	s.paymentClient = grpcMocks.NewPaymentClient(s.T())
+	s.orderPaidProducer = serviceMocks.NewMockOrderPaidProducer(s.T())
+	s.service = NewOrderService(s.orderRepository, s.inventoryClient, s.paymentClient, s.orderPaidProducer)
 }
 
 func (s *PayOrderTestSuite) TearDownTest() {
 	s.orderRepository.AssertExpectations(s.T())
 	s.inventoryClient.AssertExpectations(s.T())
 	s.paymentClient.AssertExpectations(s.T())
+	s.orderPaidProducer.AssertExpectations(s.T())
 }
 
 func TestPayOrderTestSuite(t *testing.T) {
@@ -80,6 +85,7 @@ func (s *PayOrderTestSuite) TestPayOrder_Success() {
 	s.orderRepository.On("GetOrderByUuid", ctx, orderUUID).Return(repoOrder, nil)
 	s.paymentClient.On("PayOrder", ctx, orderUUID, userUUID, string(paymentMethod)).Return(transactionUUID, nil)
 	s.orderRepository.On("UpdateOrder", ctx, expectedRepoOrder).Return(nil)
+	s.orderPaidProducer.On("ProduceOrderPaidEvent", ctx, mock.AnythingOfType("model.OrderPaidEvent")).Return(nil)
 
 	// Act
 	result, err := s.service.PayOrder(ctx, orderUUID, userUUID, paymentMethod)

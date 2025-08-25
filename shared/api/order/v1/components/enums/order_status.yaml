@@ -1,5 +1,6 @@
 type: string
 enum:
+  - ASSEMBLED
   - PENDING_PAYMENT
   - PAID
   - CANCELLED

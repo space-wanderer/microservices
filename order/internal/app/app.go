@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"go.uber.org/zap"
 
 	"github.com/space-wanderer/microservices/order/internal/config"
 	"github.com/space-wanderer/microservices/platform/pkg/closer"
@@ -34,6 +35,16 @@ func New(ctx context.Context) (*App, error) {
 }
 
 func (a *App) Run(ctx context.Context) error {
+	// Запускаем Kafka consumer в горутине
+	go func() {
+		consumerService := a.diContainer.ShipAssembledConsumerService(ctx)
+		if consumerService != nil {
+			if err := consumerService.RunConsumer(ctx); err != nil {
+				logger.Error(ctx, "Failed to run Kafka consumer", zap.Error(err))
+			}
+		}
+	}()
+
 	return a.runHTTPServer(ctx)
 }
 

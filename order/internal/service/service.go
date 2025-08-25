@@ -11,4 +11,9 @@ type OrderService interface {
 	GetOrderByUuid(ctx context.Context, uuid string) (model.Order, error)
 	PayOrder(ctx context.Context, orderUUID, userUUID string, paymentMethod model.PaymentMethod) (model.Order, error)
 	CancelOrderByUuid(ctx context.Context, uuid string) (model.Order, error)
+	UpdateOrderStatus(ctx context.Context, orderUUID string, status model.Status) error
+}
+
+type ConsumerService interface {
+	RunConsumer(ctx context.Context) error
 }

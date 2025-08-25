@@ -29,9 +29,9 @@ func (r *repository) CreateOrder(ctx context.Context, req *model.Order) (string,
 	orderUUID := uuid.New().String()
 
 	_, err = tx.Exec(ctx, `
-		INSERT INTO orders (order_uuid, user_uuid, part_uuids, total_price, payment_method, status)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, orderUUID, req.UserUUID, req.PartUuids, req.TotalPrice, req.PaymentMethod, req.Status)
+		INSERT INTO orders (order_uuid, user_uuid, part_uuids, total_price, transaction_uuid, payment_method, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, orderUUID, req.UserUUID, req.PartUuids, req.TotalPrice, req.TransactionUUID, req.PaymentMethod, req.Status)
 	if err != nil {
 		return "", err
 	}

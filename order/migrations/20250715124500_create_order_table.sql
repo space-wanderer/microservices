@@ -6,7 +6,7 @@ CREATE TABLE orders (
     total_price DECIMAL(10,2) NOT NULL,
     transaction_uuid VARCHAR(36), 
     payment_method VARCHAR(20) NOT NULL CHECK (payment_method IN ('UNKNOWN', 'CARD', 'SBP', 'CREDIT_CARD', 'INVESTOR_MONEY')),
-    status VARCHAR(20) NOT NULL CHECK (status IN ('PENDING_PAYMENT', 'PAID', 'CANCELED')),
+    status VARCHAR(20) NOT NULL CHECK (status IN ('PENDING_PAYMENT', 'PAID', 'CANCELED', 'ASSEMBLED')),
 created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP 
 );

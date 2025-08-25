@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/IBM/sarama"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"google.golang.org/grpc"
@@ -12,10 +13,18 @@ import (
 	orderV1API "github.com/space-wanderer/microservices/order/internal/api/order/v1"
 	grpcClient "github.com/space-wanderer/microservices/order/internal/client/grpc"
 	"github.com/space-wanderer/microservices/order/internal/config"
+	kafkaConverter "github.com/space-wanderer/microservices/order/internal/converter/kafka"
+	orderDecoder "github.com/space-wanderer/microservices/order/internal/converter/kafka/decoder"
+	orderProducer "github.com/space-wanderer/microservices/order/internal/converter/kafka/producer"
 	"github.com/space-wanderer/microservices/order/internal/repository"
 	orderRepository "github.com/space-wanderer/microservices/order/internal/repository/order"
 	"github.com/space-wanderer/microservices/order/internal/service"
+	orderConsumer "github.com/space-wanderer/microservices/order/internal/service/consumer/order_consumer"
 	orderService "github.com/space-wanderer/microservices/order/internal/service/order"
+	platformKafka "github.com/space-wanderer/microservices/platform/pkg/kafka"
+	"github.com/space-wanderer/microservices/platform/pkg/kafka/consumer"
+	"github.com/space-wanderer/microservices/platform/pkg/kafka/producer"
+	"github.com/space-wanderer/microservices/platform/pkg/logger"
 	migrator "github.com/space-wanderer/microservices/platform/pkg/migrator/pg"
 	order_v1 "github.com/space-wanderer/microservices/shared/pkg/api/order/v1"
 	inventory_v1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
@@ -41,6 +50,15 @@ type diContainer struct {
 	pgPool *pgxpool.Pool
 
 	pgMigrator *migrator.Migrator
+
+	// Kafka Producer для OrderPaidEvent
+	orderPaidProducer        platformKafka.Producer
+	orderPaidProducerService kafkaConverter.OrderPaidProducer
+
+	// Kafka Consumer для ShipAssembledEvent
+	shipAssembledConsumer        platformKafka.Consumer
+	shipAssembledDecoder         kafkaConverter.ShipAssembledDecoder
+	shipAssembledConsumerService *orderConsumer.Service
 }
 
 func NewDiContainer() *diContainer {
@@ -56,7 +74,7 @@ func (d *diContainer) OrderV1API(ctx context.Context) order_v1.Handler {
 
 func (d *diContainer) OrderService(ctx context.Context) service.OrderService {
 	if d.orderService == nil {
-		d.orderService = orderService.NewOrderService(d.OrderRepository(ctx), d.InventoryGRPCClient(ctx), d.PaymentGRPCClient(ctx))
+		d.orderService = orderService.NewOrderService(d.OrderRepository(ctx), d.InventoryGRPCClient(ctx), d.PaymentGRPCClient(ctx), d.OrderPaidProducerService(ctx))
 	}
 	return d.orderService
 }
@@ -136,4 +154,77 @@ func (d *diContainer) PaymentClient(ctx context.Context) payment_v1.PaymentServi
 		d.paymentClient = payment_v1.NewPaymentServiceClient(d.paymentConn)
 	}
 	return d.paymentClient
+}
+
+// OrderPaidProducer создает Kafka producer для отправки OrderPaidEvent
+func (d *diContainer) OrderPaidProducer(ctx context.Context) platformKafka.Producer {
+	if d.orderPaidProducer == nil {
+		cfg := config.AppConfig()
+
+		// Создаем Sarama producer
+		saramaConfig := sarama.NewConfig()
+		saramaConfig.Producer.Return.Successes = true
+		saramaConfig.Producer.RequiredAcks = sarama.WaitForAll
+		saramaConfig.Producer.Retry.Max = 3
+
+		saramaProducer, err := sarama.NewSyncProducer(cfg.Kafka.Brokers(), saramaConfig)
+		if err != nil {
+			log.Printf("❌ Ошибка создания Sarama producer: %v", err)
+			return nil
+		}
+
+		// Создаем platform producer
+		d.orderPaidProducer = producer.NewProducer(saramaProducer, cfg.OrderPaidProducer.TopicName(), logger.Logger())
+	}
+	return d.orderPaidProducer
+}
+
+// OrderPaidProducerService создает сервис для отправки OrderPaidEvent
+func (d *diContainer) OrderPaidProducerService(ctx context.Context) kafkaConverter.OrderPaidProducer {
+	if d.orderPaidProducerService == nil {
+		d.orderPaidProducerService = orderProducer.NewOrderProducer(d.OrderPaidProducer(ctx))
+	}
+	return d.orderPaidProducerService
+}
+
+// ShipAssembledConsumer создает Kafka consumer для получения ShipAssembledEvent
+func (d *diContainer) ShipAssembledConsumer(ctx context.Context) platformKafka.Consumer {
+	if d.shipAssembledConsumer == nil {
+		cfg := config.AppConfig()
+
+		// Создаем Sarama consumer
+		saramaConfig := sarama.NewConfig()
+		saramaConfig.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
+		saramaConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+
+		saramaConsumer, err := sarama.NewConsumerGroup(cfg.Kafka.Brokers(), cfg.OrderAssembledConsumer.ConsumerGroupID(), saramaConfig)
+		if err != nil {
+			log.Printf("❌ Ошибка создания Sarama consumer: %v", err)
+			return nil
+		}
+
+		// Создаем platform consumer
+		d.shipAssembledConsumer = consumer.NewConsumer(saramaConsumer, []string{cfg.OrderAssembledConsumer.TopicName()}, logger.Logger())
+	}
+	return d.shipAssembledConsumer
+}
+
+// ShipAssembledDecoder создает decoder для ShipAssembledEvent
+func (d *diContainer) ShipAssembledDecoder(ctx context.Context) kafkaConverter.ShipAssembledDecoder {
+	if d.shipAssembledDecoder == nil {
+		d.shipAssembledDecoder = orderDecoder.NewShipAssembledDecoder()
+	}
+	return d.shipAssembledDecoder
+}
+
+// ShipAssembledConsumerService создает сервис для обработки ShipAssembledEvent
+func (d *diContainer) ShipAssembledConsumerService(ctx context.Context) *orderConsumer.Service {
+	if d.shipAssembledConsumerService == nil {
+		d.shipAssembledConsumerService = orderConsumer.NewService(
+			d.ShipAssembledConsumer(ctx),
+			d.ShipAssembledDecoder(ctx),
+			d.OrderService(ctx),
+		)
+	}
+	return d.shipAssembledConsumerService
 }

@@ -601,6 +601,7 @@ func (s *OrderDto) SetStatus(val OrderStatus) {
 type OrderStatus string
 
 const (
+	OrderStatusASSEMBLED      OrderStatus = "ASSEMBLED"
 	OrderStatusPENDINGPAYMENT OrderStatus = "PENDING_PAYMENT"
 	OrderStatusPAID           OrderStatus = "PAID"
 	OrderStatusCANCELLED      OrderStatus = "CANCELLED"
@@ -609,6 +610,7 @@ const (
 // AllValues returns all OrderStatus values.
 func (OrderStatus) AllValues() []OrderStatus {
 	return []OrderStatus{
+		OrderStatusASSEMBLED,
 		OrderStatusPENDINGPAYMENT,
 		OrderStatusPAID,
 		OrderStatusCANCELLED,
@@ -618,6 +620,8 @@ func (OrderStatus) AllValues() []OrderStatus {
 // MarshalText implements encoding.TextMarshaler.
 func (s OrderStatus) MarshalText() ([]byte, error) {
 	switch s {
+	case OrderStatusASSEMBLED:
+		return []byte(s), nil
 	case OrderStatusPENDINGPAYMENT:
 		return []byte(s), nil
 	case OrderStatusPAID:
@@ -632,6 +636,9 @@ func (s OrderStatus) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *OrderStatus) UnmarshalText(data []byte) error {
 	switch OrderStatus(data) {
+	case OrderStatusASSEMBLED:
+		*s = OrderStatusASSEMBLED
+		return nil
 	case OrderStatusPENDINGPAYMENT:
 		*s = OrderStatusPENDINGPAYMENT
 		return nil
