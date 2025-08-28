@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package common.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "github.com/space-wanderer/microservices/shared/pkg/proto/common/v1;common_v1";
 
 // Session - сессия пользователя

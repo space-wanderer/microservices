@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package auth.v1;
 
+import "common/v1/user.proto";
+import "common/v1/session.proto";
+
 option go_package = "github.com/space-wanderer/microservices/shared/pkg/proto/auth/v1;auth_v1";
 
 service AuthService {
