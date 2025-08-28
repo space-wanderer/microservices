@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package user.v1;
+
+option go_package = "github.com/space-wanderer/microservices/shared/pkg/proto/user/v1;user_v1";
+
+service UserService {
+    // Register - регистрация пользователя
+    rpc Register(RegisterRequest) returns (RegisterResponse);
+
+    // GetUser - получить информацию о пользователе
+    rpc GetUser(GetUserRequest) returns (GetUserResponse);
+}
+
+// UserRegistrationInfo - информация для регистрации пользователя
+message UserRegistrationInfo {
+    common.v1.UserInfo info = 1; // Основная информация пользователя
+    string password = 2; // Пароль
+}
+
+// RegisterRequest - запрос на регистрацию пользователя
+message RegisterRequest {
+    UserRegistrationInfo info = 1; // Данные для регистрации
+}
+
+// RegisterResponse - ответ на запрос на регистрацию пользователя
+message RegisterResponse {
+    string user_uuid = 1; // UUID созданного пользователя
+}
+
+// GetUserRequest - запрос на получение информации о пользователе
+message GetUserRequest {
+    string user_uuid = 1; // UUID пользователя
+}
+
+// GetUserResponse - ответ на запрос на получение информации о пользователе
+message GetUserResponse {
+    common.v1.User user = 1; // Пользователь
+}
