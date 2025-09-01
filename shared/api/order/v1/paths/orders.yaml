@@ -1,3 +1,6 @@
+parameters:
+  - $ref: ../headers/session_uuid.yaml
+
 post:
   operationId: createOrder
   summary: Создать заказ
