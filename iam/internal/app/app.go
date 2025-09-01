@@ -89,7 +89,6 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 	healthServer.SetServingStatus("user.v1.UserService", grpc_health_v1.HealthCheckResponse_SERVING)
 	healthServer.SetServingStatus("auth.v1.AuthService", grpc_health_v1.HealthCheckResponse_SERVING)
 
-	// Добавляем reflection для debugging
 	reflection.Register(a.grpcServer)
 
 	logger.Info(ctx, "✅ gRPC services registered successfully")

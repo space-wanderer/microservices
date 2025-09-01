@@ -7,6 +7,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	inventoryV1API "github.com/space-wanderer/microservices/inventory/internal/api/inventory/v1"
 	"github.com/space-wanderer/microservices/inventory/internal/config"
@@ -16,6 +18,9 @@ import (
 	partService "github.com/space-wanderer/microservices/inventory/internal/service/part"
 	"github.com/space-wanderer/microservices/platform/pkg/closer"
 	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
+
+	grpcAuth "github.com/space-wanderer/microservices/platform/pkg/middleware/grpc"
+	authV1 "github.com/space-wanderer/microservices/shared/pkg/proto/auth/v1"
 )
 
 type diContainer struct {
@@ -27,6 +32,9 @@ type diContainer struct {
 
 	mongoDBClient *mongo.Client
 	mongoDBHandle *mongo.Database
+
+	iamGrpcClient   authV1.AuthServiceClient
+	authInterceptor *grpcAuth.AuthInterceptor
 }
 
 func NewDiContainer() *diContainer {
@@ -77,4 +85,26 @@ func (d *diContainer) MongoDBHandle(ctx context.Context) *mongo.Database {
 		d.mongoDBHandle = d.MongoDBClient(ctx).Database(config.AppConfig().Mongo.Database())
 	}
 	return d.mongoDBHandle
+}
+
+func (d *diContainer) IamGrpcClient(ctx context.Context) authV1.AuthServiceClient {
+	if d.iamGrpcClient == nil {
+		iamConfig := config.AppConfig().IamGRPC
+
+		conn, err := grpc.Dial(iamConfig.Address(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			panic(fmt.Sprintf("failed to connect to IAM gRPC: %v", err))
+		}
+
+		d.iamGrpcClient = authV1.NewAuthServiceClient(conn)
+	}
+	return d.iamGrpcClient
+}
+
+func (d *diContainer) AuthInterceptor(ctx context.Context) *grpcAuth.AuthInterceptor {
+	if d.authInterceptor == nil {
+		iamClient := d.IamGrpcClient(ctx)
+		d.authInterceptor = grpcAuth.NewAuthInterceptor(iamClient)
+	}
+	return d.authInterceptor
 }
