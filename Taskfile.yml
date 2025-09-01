@@ -466,7 +466,7 @@ tasks:
         USER_PASSWORD="SecurePassword123!"
         
         echo "📝 Тест 1: Регистрация пользователя"
-        REGISTER_RESPONSE=$({{.GRPCURL}} -plaintext -d "{\"info\":{\"info\":{\"email\":\"$USER_EMAIL\",\"login\":\"$USER_EMAIL\"},\"password\":\"$USER_PASSWORD\"}}" localhost:50053 user.v1.UserService/Register)
+        REGISTER_RESPONSE=$({{.GRPCURL}} -plaintext -d "{\"info\":{\"info\":{\"email\":\"$USER_EMAIL\",\"login\":\"test-user-$TIMESTAMP\"},\"password\":\"$USER_PASSWORD\"}}" localhost:50053 user.v1.UserService/Register)
         
         if [[ -z "$REGISTER_RESPONSE" || "$REGISTER_RESPONSE" == *"error"* ]]; then
           echo "❌ Не удалось зарегистрировать пользователя."
@@ -485,7 +485,7 @@ tasks:
         
         echo
         echo "🔑 Тест 2: Логин пользователя"
-        LOGIN_RESPONSE=$({{.GRPCURL}} -plaintext -d "{\"login\":\"$USER_EMAIL\",\"password\":\"$USER_PASSWORD\"}" localhost:50053 auth.v1.AuthService/Login)
+        LOGIN_RESPONSE=$({{.GRPCURL}} -plaintext -d "{\"login\":\"test-user-$TIMESTAMP\",\"password\":\"$USER_PASSWORD\"}" localhost:50053 auth.v1.AuthService/Login)
         
         if [[ -z "$LOGIN_RESPONSE" || "$LOGIN_RESPONSE" == *"error"* ]]; then
           echo "❌ Не удалось войти в систему."
@@ -661,9 +661,9 @@ tasks:
           fi
         else
           # Извлекаем UUID заказа с учетом разных форматов JSON
-        ORDER_UUID=$(echo $ORDER_RESPONSE | grep -o '"uuid":"[^"]*' | cut -d'"' -f4)
+        ORDER_UUID=$(echo $ORDER_RESPONSE | grep -o '"order_uuid":"[^"]*' | cut -d'"' -f4)
         if [ -z "$ORDER_UUID" ]; then
-          ORDER_UUID=$(echo $ORDER_RESPONSE | grep -o '"uuid": "[^"]*' | cut -d'"' -f4)
+          ORDER_UUID=$(echo $ORDER_RESPONSE | grep -o '"order_uuid": "[^"]*' | cut -d'"' -f4)
           if [ -z "$ORDER_UUID" ]; then
             echo "❌ Не удалось извлечь UUID заказа из ответа."
             echo "🔍 Ответ сервера: $ORDER_RESPONSE"
@@ -706,7 +706,7 @@ tasks:
         PAY_RESPONSE=$(curl -s -X POST "http://localhost:8080/api/v1/orders/$ORDER_UUID/pay" \
           -H "Content-Type: application/json" \
           -H "X-Session-Uuid: $TEST_SESSION_UUID" \
-          -d "{\"payment_method\":\"PAYMENT_METHOD_CARD\"}")
+          -d "{\"payment_method\":\"CARD\"}")
 
         if [[ "$PAY_RESPONSE" == *"error"* ]]; then
           echo "❌ Ошибка при оплате заказа."
@@ -770,9 +770,9 @@ tasks:
         fi
 
         # Извлекаем UUID второго заказа с учетом разных форматов JSON
-        ORDER2_UUID=$(echo $ORDER2_RESPONSE | grep -o '"uuid":"[^"]*' | cut -d'"' -f4)
+        ORDER2_UUID=$(echo $ORDER2_RESPONSE | grep -o '"order_uuid":"[^"]*' | cut -d'"' -f4)
         if [ -z "$ORDER2_UUID" ]; then
-          ORDER2_UUID=$(echo $ORDER2_RESPONSE | grep -o '"uuid": "[^"]*' | cut -d'"' -f4)
+          ORDER2_UUID=$(echo $ORDER2_RESPONSE | grep -o '"order_uuid": "[^"]*' | cut -d'"' -f4)
           if [ -z "$ORDER2_UUID" ]; then
             echo "❌ Не удалось извлечь UUID второго заказа из ответа."
             echo "🔍 Ответ сервера: $ORDER2_RESPONSE"

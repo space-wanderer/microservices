@@ -6,10 +6,6 @@ import (
 
 	redigo "github.com/gomodule/redigo/redis"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/space-wanderer/microservices/platform/pkg/cache"
-	"github.com/space-wanderer/microservices/platform/pkg/cache/redis"
-	"github.com/space-wanderer/microservices/platform/pkg/closer"
-	"github.com/space-wanderer/microservices/platform/pkg/logger"
 
 	authV1API "github.com/space-wanderer/microservices/iam/internal/api/auth/v1"
 	userV1API "github.com/space-wanderer/microservices/iam/internal/api/user/v1"
@@ -20,6 +16,10 @@ import (
 	"github.com/space-wanderer/microservices/iam/internal/service"
 	authService "github.com/space-wanderer/microservices/iam/internal/service/auth"
 	userService "github.com/space-wanderer/microservices/iam/internal/service/user"
+	"github.com/space-wanderer/microservices/platform/pkg/cache"
+	"github.com/space-wanderer/microservices/platform/pkg/cache/redis"
+	"github.com/space-wanderer/microservices/platform/pkg/closer"
+	"github.com/space-wanderer/microservices/platform/pkg/logger"
 	authV1 "github.com/space-wanderer/microservices/shared/pkg/proto/auth/v1"
 	userV1 "github.com/space-wanderer/microservices/shared/pkg/proto/user/v1"
 )

@@ -1,10 +1,11 @@
 package converter
 
 import (
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/space-wanderer/microservices/iam/internal/model"
 	authV1 "github.com/space-wanderer/microservices/shared/pkg/proto/auth/v1"
 	commonV1 "github.com/space-wanderer/microservices/shared/pkg/proto/common/v1"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ConvertModelLoginRequestToProto конвертирует запрос входа из модели в proto

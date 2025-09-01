@@ -105,8 +105,11 @@ func (a *App) initListener(ctx context.Context) error {
 }
 
 func (a *App) initHTTPServer(ctx context.Context) error {
-	// Создаем OpenAPI сервер
+	// Создаем HTTP сервер с middleware
+	authMiddleware := a.diContainer.AuthMiddleware(ctx)
+
 	api := a.diContainer.OrderV1API(ctx)
+
 	s, err := order_v1.NewServer(api)
 	if err != nil {
 		return fmt.Errorf("failed to create OpenAPI server: %w", err)
@@ -119,6 +122,7 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(10 * time.Second))
+	r.Use(authMiddleware.Handle)
 
 	// Монтируем обработчики OpenAPI
 	r.Mount("/", s)

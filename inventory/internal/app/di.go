@@ -17,10 +17,9 @@ import (
 	"github.com/space-wanderer/microservices/inventory/internal/service"
 	partService "github.com/space-wanderer/microservices/inventory/internal/service/part"
 	"github.com/space-wanderer/microservices/platform/pkg/closer"
-	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
-
 	grpcAuth "github.com/space-wanderer/microservices/platform/pkg/middleware/grpc"
 	authV1 "github.com/space-wanderer/microservices/shared/pkg/proto/auth/v1"
+	inventoryV1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
 )
 
 type diContainer struct {
@@ -91,7 +90,7 @@ func (d *diContainer) IamGrpcClient(ctx context.Context) authV1.AuthServiceClien
 	if d.iamGrpcClient == nil {
 		iamConfig := config.AppConfig().IamGRPC
 
-		conn, err := grpc.Dial(iamConfig.Address(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.NewClient(iamConfig.Address(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			panic(fmt.Sprintf("failed to connect to IAM gRPC: %v", err))
 		}

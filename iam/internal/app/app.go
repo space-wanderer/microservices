@@ -11,10 +11,9 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
+	"github.com/space-wanderer/microservices/iam/internal/config"
 	"github.com/space-wanderer/microservices/platform/pkg/closer"
 	"github.com/space-wanderer/microservices/platform/pkg/logger"
-
-	"github.com/space-wanderer/microservices/iam/internal/config"
 	authV1 "github.com/space-wanderer/microservices/shared/pkg/proto/auth/v1"
 	userV1 "github.com/space-wanderer/microservices/shared/pkg/proto/user/v1"
 )
@@ -36,9 +35,7 @@ func (a *App) Run(ctx context.Context) error {
 	logger.Info(ctx, "🚀 Starting IAM Service...")
 
 	// Инициализируем gRPC сервер
-	if err := a.initGRPCServer(ctx); err != nil {
-		return fmt.Errorf("failed to initialize gRPC server: %w", err)
-	}
+	a.initGRPCServer(ctx)
 
 	// Запускаем сервер
 	grpcConfig := config.AppConfig().IamGrpc
@@ -70,7 +67,8 @@ func (a *App) Run(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) initGRPCServer(ctx context.Context) error {
+func (a *App) initGRPCServer(ctx context.Context) {
+	_ = ctx // Используем контекст для получения API
 	// Создаем gRPC сервер
 	a.grpcServer = grpc.NewServer()
 
@@ -92,6 +90,4 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 	reflection.Register(a.grpcServer)
 
 	logger.Info(ctx, "✅ gRPC services registered successfully")
-
-	return nil
 }

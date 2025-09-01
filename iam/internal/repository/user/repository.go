@@ -2,6 +2,7 @@ package user
 
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	repoiface "github.com/space-wanderer/microservices/iam/internal/repository"
 )
 

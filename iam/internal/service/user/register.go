@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/space-wanderer/microservices/iam/internal/converter"
 	"github.com/space-wanderer/microservices/iam/internal/model"
 )
@@ -22,12 +21,12 @@ func (s *service) Register(ctx context.Context, info model.UserRegistrationInfo)
 	// Проверка уникальности логина/почты (минимально)
 	if _, err := s.repo.GetUserByLogin(ctx, info.Info.Login); err == nil {
 		return "", fmt.Errorf("login already exists")
-	} else if !errors.Is(err, pgx.ErrNoRows) {
+	} else if !errors.Is(err, model.ErrUserNotFound) {
 		return "", err
 	}
 	if _, err := s.repo.GetUserByEmail(ctx, info.Info.Email); err == nil {
 		return "", fmt.Errorf("email already exists")
-	} else if !errors.Is(err, pgx.ErrNoRows) {
+	} else if !errors.Is(err, model.ErrUserNotFound) {
 		return "", err
 	}
 

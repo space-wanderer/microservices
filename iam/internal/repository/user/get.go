@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
+
 	repoerrors "github.com/space-wanderer/microservices/iam/internal/model"
 	"github.com/space-wanderer/microservices/iam/internal/repository/model"
 )
@@ -20,7 +21,6 @@ func (r *repository) GetUserByUUID(ctx context.Context, uuid string) (model.User
 	err := r.pool.QueryRow(ctx, query, uuid).Scan(
 		&user.UUID, &user.Login, &user.Email, &user.Password,
 		&user.CreatedAt, &user.UpdatedAt)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return model.User{}, repoerrors.ErrUserNotFound
@@ -42,7 +42,6 @@ func (r *repository) GetUserByLogin(ctx context.Context, login string) (model.Us
 	err := r.pool.QueryRow(ctx, query, login).Scan(
 		&user.UUID, &user.Login, &user.Email, &user.Password,
 		&user.CreatedAt, &user.UpdatedAt)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return model.User{}, repoerrors.ErrUserNotFound
@@ -64,7 +63,6 @@ func (r *repository) GetUserByEmail(ctx context.Context, email string) (model.Us
 	err := r.pool.QueryRow(ctx, query, email).Scan(
 		&user.UUID, &user.Login, &user.Email, &user.Password,
 		&user.CreatedAt, &user.UpdatedAt)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return model.User{}, repoerrors.ErrUserNotFound

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+
 	"github.com/space-wanderer/microservices/iam/internal/repository/model"
 )
 
@@ -33,7 +34,6 @@ func (r *repository) UpdateUser(ctx context.Context, user model.User) error {
 	ct, err := r.pool.Exec(ctx, query,
 		user.UUID, user.Login, user.Email, user.Password,
 		user.CreatedAt, user.UpdatedAt)
-
 	if err != nil {
 		return err
 	}

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
 	"github.com/space-wanderer/microservices/iam/internal/model"
 	repoModel "github.com/space-wanderer/microservices/iam/internal/repository/model"
 )

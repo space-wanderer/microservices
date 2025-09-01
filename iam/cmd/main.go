@@ -6,11 +6,10 @@ import (
 	"log"
 	"syscall"
 
-	"github.com/space-wanderer/microservices/platform/pkg/closer"
-	"github.com/space-wanderer/microservices/platform/pkg/logger"
-
 	"github.com/space-wanderer/microservices/iam/internal/app"
 	"github.com/space-wanderer/microservices/iam/internal/config"
+	"github.com/space-wanderer/microservices/platform/pkg/closer"
+	"github.com/space-wanderer/microservices/platform/pkg/logger"
 )
 
 const configPath = "deploy/compose/iam/.env"
