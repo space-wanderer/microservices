@@ -35,3 +35,7 @@ type OrderAssembledConsumerConfig interface {
 type OrderPaidProducerConfig interface {
 	TopicName() string
 }
+
+type IamGRPCConfig interface {
+	Address() string
+}

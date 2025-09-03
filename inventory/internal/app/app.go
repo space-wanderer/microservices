@@ -7,10 +7,8 @@ import (
 	"net"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 
-	inventoryV1API "github.com/space-wanderer/microservices/inventory/internal/api/inventory/v1"
 	"github.com/space-wanderer/microservices/inventory/internal/config"
 	"github.com/space-wanderer/microservices/platform/pkg/closer"
 	"github.com/space-wanderer/microservices/platform/pkg/grpc/health"
@@ -96,7 +94,10 @@ func (a *App) initListener(_ context.Context) error {
 }
 
 func (a *App) initGRPCServer(ctx context.Context) error {
-	a.grpcServer = grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
+	authInterceptor := a.diContainer.AuthInterceptor(ctx)
+	a.grpcServer = grpc.NewServer(
+		grpc.UnaryInterceptor(authInterceptor.Unary()),
+	)
 	closer.AddNamed("GRPC Server", func(ctx context.Context) error {
 		a.grpcServer.GracefulStop()
 		return nil
@@ -105,7 +106,7 @@ func (a *App) initGRPCServer(ctx context.Context) error {
 	reflection.Register(a.grpcServer)
 	health.RegisterServer(a.grpcServer)
 
-	api := inventoryV1API.NewAPI(a.diContainer.InventoryService(ctx))
+	api := a.diContainer.InventoryV1API(ctx)
 	inventoryV1.RegisterInventoryServiceServer(a.grpcServer, api)
 
 	return nil

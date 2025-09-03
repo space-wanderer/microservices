@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/IBM/sarama"
@@ -25,8 +26,10 @@ import (
 	"github.com/space-wanderer/microservices/platform/pkg/kafka/consumer"
 	"github.com/space-wanderer/microservices/platform/pkg/kafka/producer"
 	"github.com/space-wanderer/microservices/platform/pkg/logger"
+	"github.com/space-wanderer/microservices/platform/pkg/middleware/http"
 	migrator "github.com/space-wanderer/microservices/platform/pkg/migrator/pg"
 	order_v1 "github.com/space-wanderer/microservices/shared/pkg/api/order/v1"
+	authV1 "github.com/space-wanderer/microservices/shared/pkg/proto/auth/v1"
 	inventory_v1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
 	payment_v1 "github.com/space-wanderer/microservices/shared/pkg/proto/payment/v1"
 )
@@ -59,6 +62,9 @@ type diContainer struct {
 	shipAssembledConsumer        platformKafka.Consumer
 	shipAssembledDecoder         kafkaConverter.ShipAssembledDecoder
 	shipAssembledConsumerService *orderConsumer.Service
+
+	iamGrpcClient  authV1.AuthServiceClient
+	authMiddleware *http.AuthMiddleware
 }
 
 func NewDiContainer() *diContainer {
@@ -227,4 +233,26 @@ func (d *diContainer) ShipAssembledConsumerService(ctx context.Context) *orderCo
 		)
 	}
 	return d.shipAssembledConsumerService
+}
+
+func (d *diContainer) IamGrpcClient(ctx context.Context) authV1.AuthServiceClient {
+	if d.iamGrpcClient == nil {
+		iamConfig := config.AppConfig().IamGRPC
+
+		conn, err := grpc.NewClient(iamConfig.Address(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			panic(fmt.Sprintf("failed to connect to IAM gRPC: %v", err))
+		}
+
+		d.iamGrpcClient = authV1.NewAuthServiceClient(conn)
+	}
+	return d.iamGrpcClient
+}
+
+func (d *diContainer) AuthMiddleware(ctx context.Context) *http.AuthMiddleware {
+	if d.authMiddleware == nil {
+		iamClient := d.IamGrpcClient(ctx)
+		d.authMiddleware = http.NewAuthMiddleware(iamClient)
+	}
+	return d.authMiddleware
 }
