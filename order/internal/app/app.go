@@ -116,14 +116,26 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 	// Инициализируем роутер Chi
 	r := chi.NewRouter()
 
-	// Добавляем middleware
+	// Добавляем базовые middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(10 * time.Second))
-	r.Use(authMiddleware.Handle)
 
-	// Монтируем обработчики OpenAPI
-	r.Mount("/", s)
+	// Добавляем endpoint для метрик (без аутентификации)
+	r.Get("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		// Здесь будет обработчик метрик Prometheus
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("# Metrics endpoint - будет реализован с Prometheus exporter\n"))
+	})
+
+	// Создаем подроутер для API с аутентификацией
+	apiRouter := chi.NewRouter()
+	apiRouter.Use(authMiddleware.Handle)
+	apiRouter.Mount("/", s)
+
+	// Монтируем API роутер
+	r.Mount("/", apiRouter)
 
 	a.apiServer = &http.Server{
 		Addr:              config.AppConfig().OrderHTTP.Address(),

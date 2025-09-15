@@ -308,7 +308,7 @@ services: # Раздел, в котором описываются все кон
     volumes:
       # МОНТИРОВАНИЕ КОНФИГУРАЦИИ: подключаем локальный файл в контейнер
       # Изменения в otel-collector-config.yaml требуют перезапуска контейнера
-      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
     
     ports:
       # ПОРТ 8888: метрики самого коллектора (Prometheus формат)
@@ -332,6 +332,101 @@ services: # Раздел, в котором описываются все кон
     # ПРИМЕЧАНИЕ: нет healthcheck, так как distroless образ не содержит curl/wget
     # Коллектор считается здоровым, если процесс запустился
 
+  # ===================================================================
+  # PROMETHEUS - СБОР И ХРАНЕНИЕ МЕТРИК
+  # ===================================================================
+  # 
+  # Prometheus собирает метрики от всех сервисов и хранит их для анализа.
+  # Метрики доступны через REST API и используются Grafana для визуализации.
+  
+  prometheus:
+    # Официальный образ Prometheus - система мониторинга и алертинга
+    image: prom/prometheus:v3.3.1
+    
+    container_name: prometheus
+    
+    # КОМАНДА ЗАПУСКА: указываем путь к файлу конфигурации
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    
+    volumes:
+      # МОНТИРОВАНИЕ КОНФИГУРАЦИИ: подключаем локальный файл в контейнер
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      # ПОСТОЯННОЕ ХРАНЕНИЕ: данные Prometheus сохраняются на диске
+      - prometheus_data:/prometheus
+    
+    ports:
+      # ПОРТ 9090: веб-интерфейс Prometheus
+      # Открываем в браузере http://localhost:9090 для просмотра метрик
+      - "9090:9090"
+    
+    healthcheck:
+      # ПРОВЕРКА ЗДОРОВЬЯ: проверяем готовность веб-интерфейса
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+  # ===================================================================
+  # GRAFANA - ВИЗУАЛИЗАЦИЯ МЕТРИК
+  # ===================================================================
+  # 
+  # Grafana предоставляет веб-интерфейс для создания дашбордов и графиков
+  # на основе метрик, собранных Prometheus.
+  
+  grafana:
+    # Официальный образ Grafana - платформа для визуализации данных
+    image: grafana/grafana:12.0.0
+    
+    container_name: grafana
+    
+    environment:
+      # НАСТРОЙКИ GRAFANA: базовая конфигурация
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      
+      # АВТОМАТИЧЕСКОЕ ПОДКЛЮЧЕНИЕ К PROMETHEUS: настраиваем datasource
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    
+    volumes:
+      # ПОСТОЯННОЕ ХРАНЕНИЕ: настройки и дашборды Grafana
+      - grafana_data:/var/lib/grafana
+      # ПРЕДУСТАНОВЛЕННЫЕ ДАШБОРДЫ: автоматическая настройка
+      - ./grafana/grafana_dashboard.json:/etc/grafana/provisioning/dashboards/microservices.json
+    
+    ports:
+      # ПОРТ 3000: веб-интерфейс Grafana
+      # Открываем в браузере http://localhost:3000 (admin/admin)
+      - "3000:3000"
+    
+    depends_on:
+      # ЗАВИСИМОСТЬ ОТ PROMETHEUS: Grafana подключается к Prometheus
+      prometheus:
+        condition: service_healthy
+    
+    healthcheck:
+      # ПРОВЕРКА ЗДОРОВЬЯ: проверяем готовность веб-интерфейса
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
 # ===================================================================
 # VOLUMES - ПОСТОЯННОЕ ХРАНЕНИЕ ДАННЫХ
 # ===================================================================
@@ -345,6 +440,14 @@ volumes:
   # ДАННЫЕ ELASTICSEARCH: индексы, логи, метаданные
   # Данные сохраняются на диске хоста и не удаляются при docker-compose down
   es_data:
+  
+  # ДАННЫЕ PROMETHEUS: временные ряды метрик
+  # Данные сохраняются на диске хоста и не удаляются при docker-compose down
+  prometheus_data:
+  
+  # ДАННЫЕ GRAFANA: настройки, дашборды, пользователи
+  # Данные сохраняются на диске хоста и не удаляются при docker-compose down
+  grafana_data:
 
 # ===================================================================
 # NETWORKS - СЕТЕВОЕ ВЗАИМОДЕЙСТВИЕ КОНТЕЙНЕРОВ
@@ -359,22 +462,4 @@ networks:
     # ВНУТРЕННЯЯ СЕТЬ: создается Docker Compose, не внешняя
     external: false
 
-# ===================================================================
-# ИТОГО АРХИТЕКТУРА:
-# ===================================================================
-# 
-# 1. Go приложение отправляет логи на localhost:4317 (otel-collector)
-# 2. OTel Collector обрабатывает логи и отправляет в elasticsearch:9200
-# 3. Elasticsearch индексирует логи в индекс "easy-logs"
-# 4. Kibana подключается к elasticsearch:9200 и показывает логи через веб-интерфейс
-# 5. kibana-init автоматически настраивает Data View для удобства просмотра
-#
-# Команды для работы:
-# - task up    : поднять всю инфраструктуру
-# - task run   : запустить Go приложение (в другом терминале)
-# - task test:get : сгенерировать тестовые логи
-# 
-# Веб-интерфейсы:
-# - http://localhost:5601 - Kibana (просмотр логов)
-# - http://localhost:9200 - Elasticsearch (REST API)
-# - http://localhost:8888/metrics - метрики OTel Collector
+

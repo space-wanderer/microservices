@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
+
 	"github.com/space-wanderer/microservices/order/internal/client/grpc"
 	"github.com/space-wanderer/microservices/order/internal/converter"
 	kafkaConverter "github.com/space-wanderer/microservices/order/internal/converter/kafka"
@@ -16,14 +19,33 @@ type service struct {
 	inventoryClient   grpc.InventoryClient
 	paymentClient     grpc.PaymentClient
 	orderPaidProducer kafkaConverter.OrderPaidProducer
+
+	// МЕТРИКИ: счетчики для мониторинга бизнес-метрик
+	ordersTotal        metric.Int64Counter   // количество созданных заказов
+	ordersRevenueTotal metric.Float64Counter // суммарная выручка от заказов
 }
 
 func NewOrderService(orderRepository repository.OrderRepository, inventoryClient grpc.InventoryClient, paymentClient grpc.PaymentClient, orderPaidProducer kafkaConverter.OrderPaidProducer) *service {
+	// ИНИЦИАЛИЗАЦИЯ МЕТРИК: создаем счетчики для мониторинга
+	meter := otel.Meter("order-service")
+
+	ordersTotal, _ := meter.Int64Counter(
+		"orders_total",
+		metric.WithDescription("Total number of orders created"),
+	)
+
+	ordersRevenueTotal, _ := meter.Float64Counter(
+		"orders_revenue_total",
+		metric.WithDescription("Total revenue from orders"),
+	)
+
 	return &service{
-		orderRepository:   orderRepository,
-		inventoryClient:   inventoryClient,
-		paymentClient:     paymentClient,
-		orderPaidProducer: orderPaidProducer,
+		orderRepository:    orderRepository,
+		inventoryClient:    inventoryClient,
+		paymentClient:      paymentClient,
+		orderPaidProducer:  orderPaidProducer,
+		ordersTotal:        ordersTotal,
+		ordersRevenueTotal: ordersRevenueTotal,
 	}
 }
 

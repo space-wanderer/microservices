@@ -29,6 +29,9 @@ func (s *service) OrderHandler(ctx context.Context, msg consumer.Message) error 
 	// Имитируем сборку корабля
 	logger.Info(ctx, "🚀 Начинаем сборку корабля", zap.String("order_uuid", event.OrderUUID))
 
+	// ИЗМЕРЕНИЕ ДЛИТЕЛЬНОСТИ: записываем время начала сборки
+	start := time.Now()
+
 	// Используем таймер для сборки корабля
 	timer := time.NewTimer(10 * time.Second)
 	select {
@@ -39,6 +42,10 @@ func (s *service) OrderHandler(ctx context.Context, msg consumer.Message) error 
 		logger.Error(ctx, "❌ Сборка корабля прервана", zap.String("order_uuid", event.OrderUUID))
 		return ctx.Err()
 	}
+
+	// ЗАПИСЬ МЕТРИКИ: измеряем длительность сборки в секундах
+	duration := time.Since(start).Seconds()
+	s.assemblyDuration.Record(ctx, duration)
 
 	// Создаем событие ShipAssembledEvent
 	shipAssembledEvent := model.ShipAssembledEvent{
