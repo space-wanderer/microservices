@@ -180,7 +180,7 @@ func (d *diContainer) OrderPaidProducer(ctx context.Context) platformKafka.Produ
 		}
 
 		// Создаем platform producer
-		d.orderPaidProducer = producer.NewProducer(saramaProducer, cfg.OrderPaidProducer.TopicName(), logger.Logger())
+		d.orderPaidProducer = producer.NewProducer(saramaProducer, cfg.OrderPaidProducer.TopicName(), &logger.NoopLogger{})
 	}
 	return d.orderPaidProducer
 }
@@ -210,7 +210,7 @@ func (d *diContainer) ShipAssembledConsumer(ctx context.Context) platformKafka.C
 		}
 
 		// Создаем platform consumer
-		d.shipAssembledConsumer = consumer.NewConsumer(saramaConsumer, []string{cfg.OrderAssembledConsumer.TopicName()}, logger.Logger())
+		d.shipAssembledConsumer = consumer.NewConsumer(saramaConsumer, []string{cfg.OrderAssembledConsumer.TopicName()}, &logger.NoopLogger{})
 	}
 	return d.shipAssembledConsumer
 }

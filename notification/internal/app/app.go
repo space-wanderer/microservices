@@ -6,6 +6,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/space-wanderer/microservices/notification/internal/config"
 	"github.com/space-wanderer/microservices/platform/pkg/closer"
 	"github.com/space-wanderer/microservices/platform/pkg/logger"
 )
@@ -23,6 +24,11 @@ func NewApp() *App {
 }
 
 func (app *App) Run(ctx context.Context) error {
+	// Инициализируем логгер с новой конфигурацией
+	if err := app.initLogger(ctx); err != nil {
+		return err
+	}
+
 	logger.Info(ctx, "🚀 Запуск Notification Service")
 
 	// Запускаем OrderPaid consumer
@@ -54,4 +60,9 @@ func (app *App) Run(ctx context.Context) error {
 
 	logger.Info(ctx, "✅ Notification Service завершен")
 	return nil
+}
+
+func (app *App) initLogger(ctx context.Context) error {
+	// Инициализируем логгер с новой конфигурацией
+	return logger.InitWithConfig(config.AppConfig().Logger)
 }

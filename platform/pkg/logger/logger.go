@@ -87,7 +87,7 @@ func Init(logLevel string, asJSON bool, enableOTLP bool) error {
 // Поддерживает множественные выходы согласно конфигурации.
 func InitWithConfig(cfg LoggerConfig) error {
 	initOnce.Do(func() {
-		level = zap.NewAtomicLevelAt(parseLevel(cfg.LogLevel()))
+		level = zap.NewAtomicLevelAt(parseLevel(cfg.Level()))
 		cores := buildCoresFromConfig(cfg)
 		global = zap.New(zapcore.NewTee(cores...), zap.AddCaller(), zap.AddCallerSkip(1))
 	})

@@ -121,7 +121,7 @@ func (d *diContainer) RedisClient() cache.RedisClient {
 			},
 		}
 
-		d.redisClient = redis.NewClient(pool, logger.Logger(), redisConfig.ConnectionTimeout())
+		d.redisClient = redis.NewClient(pool, &logger.NoopLogger{}, redisConfig.ConnectionTimeout())
 	}
 	return d.redisClient
 }

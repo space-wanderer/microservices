@@ -54,7 +54,7 @@ func (d *diContainer) OrderPaidConsumer(ctx context.Context) platformKafka.Consu
 		}
 
 		// Создаем consumer
-		d.orderPaidConsumer = consumer.NewConsumer(group, []string{cfg.OrderPaidConsumer.TopicName()}, logger.Logger())
+		d.orderPaidConsumer = consumer.NewConsumer(group, []string{cfg.OrderPaidConsumer.TopicName()}, &logger.NoopLogger{})
 	}
 	return d.orderPaidConsumer
 }
@@ -76,7 +76,7 @@ func (d *diContainer) OrderAssembledConsumer(ctx context.Context) platformKafka.
 		}
 
 		// Создаем consumer
-		d.orderAssembledConsumer = consumer.NewConsumer(group, []string{cfg.OrderAssembledConsumer.TopicName()}, logger.Logger())
+		d.orderAssembledConsumer = consumer.NewConsumer(group, []string{cfg.OrderAssembledConsumer.TopicName()}, &logger.NoopLogger{})
 	}
 	return d.orderAssembledConsumer
 }

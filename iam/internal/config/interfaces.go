@@ -5,6 +5,9 @@ import "time"
 type LoggerConfig interface {
 	Level() string
 	AsJSON() bool
+	Outputs() []string
+	OTELCollectorEndpoint() string
+	ServiceName() string
 }
 
 type PostgresConfig interface {

@@ -41,7 +41,7 @@ var _ = BeforeSuite(func() {
 	// Загружаем .env файл и устанавливаем переменные в окружение
 	envVars, err := godotenv.Read(filepath.Join("..", "..", "..", "deploy", "compose", "inventory", ".env"))
 	if err != nil {
-		logger.Fatal(suiteCtx, "Не удалось загрузить .env файл", zap.Error(err))
+		logger.Error(suiteCtx, "Не удалось загрузить .env файл", zap.Error(err))
 	}
 
 	// Устанавливаем переменные в окружение процесса

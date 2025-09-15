@@ -25,9 +25,7 @@ func main() {
 		log.Fatalf("❌ Ошибка загрузки конфигурации: %v", err)
 	}
 
-	if err := logger.Init(config.AppConfig().Logger.Level(), config.AppConfig().Logger.AsJson()); err != nil {
-		log.Fatalf("❌ Ошибка инициализации логгера: %v", err)
-	}
+	// Логгер инициализируется в app.go
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -73,14 +73,12 @@ func (a *App) initDi(ctx context.Context) error {
 }
 
 func (a *App) initLogger(ctx context.Context) error {
-	return logger.Init(
-		config.AppConfig().Logger.Level(),
-		config.AppConfig().Logger.AsJson(),
-	)
+	// Инициализируем логгер с новой конфигурацией
+	return logger.InitWithConfig(config.AppConfig().Logger)
 }
 
 func (a *App) initCloser(ctx context.Context) error {
-	closer.SetLogger(logger.Logger())
+	closer.SetLogger(&logger.NoopLogger{})
 
 	return nil
 }

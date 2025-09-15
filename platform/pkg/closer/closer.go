@@ -57,9 +57,9 @@ func Configure(signals ...os.Signal) {
 	go globalCloser.handleSignals(signals...)
 }
 
-// New создаёт новый экземпляр Closer с дефолтным логгером log.Default()
+// New создаёт новый экземпляр Closer с дефолтным логгером
 func New(signals ...os.Signal) *Closer {
-	return NewWithLogger(logger.Logger(), signals...)
+	return NewWithLogger(&logger.NoopLogger{}, signals...)
 }
 
 // NewWithLogger создаёт новый экземпляр Closer с указанием логгера.

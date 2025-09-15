@@ -32,6 +32,11 @@ func NewApp() (*App, error) {
 }
 
 func (a *App) Run(ctx context.Context) error {
+	// Инициализируем логгер с новой конфигурацией
+	if err := a.initLogger(ctx); err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+
 	logger.Info(ctx, "🚀 Starting IAM Service...")
 
 	// Инициализируем gRPC сервер
@@ -90,4 +95,9 @@ func (a *App) initGRPCServer(ctx context.Context) {
 	reflection.Register(a.grpcServer)
 
 	logger.Info(ctx, "✅ gRPC services registered successfully")
+}
+
+func (a *App) initLogger(ctx context.Context) error {
+	// Инициализируем логгер с новой конфигурацией
+	return logger.InitWithConfig(config.AppConfig().Logger)
 }

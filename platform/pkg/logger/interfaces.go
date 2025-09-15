@@ -14,9 +14,9 @@ type LoggerConfig interface {
 	// Например: "order-service", "inventory-service"
 	ServiceName() string
 
-	// LogLevel возвращает уровень логирования
+	// Level возвращает уровень логирования
 	// Поддерживаемые значения: "debug", "info", "warn", "error"
-	LogLevel() string
+	Level() string
 
 	// AsJSON возвращает true, если логи должны выводиться в JSON формате
 	AsJSON() bool
