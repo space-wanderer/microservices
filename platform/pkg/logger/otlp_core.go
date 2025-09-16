@@ -103,13 +103,9 @@ func NewSimpleOTLPCore(endpoint, serviceName string, level zapcore.LevelEnabler)
 
 // initGRPCClient инициализирует gRPC соединение с OTLP коллектором
 func (c *SimpleOTLPCore) initGRPCClient() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	// Создаем gRPC соединение
-	conn, err := grpc.DialContext(ctx, c.endpoint,
+	conn, err := grpc.NewClient(c.endpoint,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
 	)
 	if err != nil {
 		// При ошибке соединения gRPC клиент остается nil
@@ -314,8 +310,13 @@ func (c *SimpleOTLPCore) sendToOTLPHTTP(ctx context.Context, request ExportLogsS
 		return
 	}
 
-	// Используем HTTP API OTLP коллектора
-	url := fmt.Sprintf("http://%s/v1/logs", c.endpoint)
+	// Используем HTTP API OTLP коллектора (порт 4318 для HTTP)
+	// Заменяем порт 4317 на 4318 для HTTP API
+	httpEndpoint := c.endpoint
+	if httpEndpoint == "localhost:4317" {
+		httpEndpoint = "localhost:4318"
+	}
+	url := fmt.Sprintf("http://%s/v1/logs", httpEndpoint)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		// Игнорируем ошибки создания запроса
@@ -330,5 +331,10 @@ func (c *SimpleOTLPCore) sendToOTLPHTTP(ctx context.Context, request ExportLogsS
 		// Игнорируем ошибки отправки для graceful degradation
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Игнорируем ошибки закрытия body
+			_ = err
+		}
+	}()
 }

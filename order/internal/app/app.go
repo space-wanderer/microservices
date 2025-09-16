@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
 	"github.com/space-wanderer/microservices/order/internal/config"
@@ -122,12 +123,8 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 	r.Use(middleware.Timeout(10 * time.Second))
 
 	// Добавляем endpoint для метрик (без аутентификации)
-	r.Get("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		// Здесь будет обработчик метрик Prometheus
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("# Metrics endpoint - будет реализован с Prometheus exporter\n"))
-	})
+	// Метрики собираются через OpenTelemetry Collector
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
 	// Создаем подроутер для API с аутентификацией
 	apiRouter := chi.NewRouter()

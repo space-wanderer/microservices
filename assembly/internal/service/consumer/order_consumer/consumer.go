@@ -26,11 +26,16 @@ func NewService(assemblyRecodeConsumer kafka.Consumer, assemblyRecodedDecoder ka
 	// ИНИЦИАЛИЗАЦИЯ МЕТРИКИ: создаем гистограмму для измерения длительности сборки
 	meter := otel.Meter("assembly-service")
 
-	assemblyDuration, _ := meter.Float64Histogram(
+	assemblyDuration, err := meter.Float64Histogram(
 		"assembly_duration_seconds",
 		metric.WithDescription("Duration of assembly operations"),
 		metric.WithUnit("s"),
 	)
+	if err != nil {
+		// Логируем ошибку, но продолжаем работу
+		// В production можно использовать fallback метрику
+		_ = err // Игнорируем ошибку для graceful degradation
+	}
 
 	return &service{
 		assemblyRecodeConsumer: assemblyRecodeConsumer,

@@ -99,7 +99,7 @@ func (a *App) initListener(_ context.Context) error {
 func (a *App) initGRPCServer(ctx context.Context) error {
 	a.grpcServer = grpc.NewServer(
 		grpc.Creds(insecure.NewCredentials()),
-		grpc.UnaryInterceptor(tracing.UnaryServerInterceptor("payment-service")),
+		grpc.StatsHandler(tracing.NewServerStatsHandler("payment-service")),
 	)
 	closer.AddNamed("GRPC Server", func(ctx context.Context) error {
 		a.grpcServer.GracefulStop()

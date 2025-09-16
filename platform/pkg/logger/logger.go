@@ -69,7 +69,7 @@ const (
 //   - logLevel: уровень логирования ("debug", "info", "warn", "error")
 //   - asJSON: формат вывода (true - JSON, false - консольный)
 //   - enableOTLP: включение отправки в OpenTelemetry коллектор
-func Init(logLevel string, asJSON bool, enableOTLP bool) error {
+func Init(logLevel string, asJSON, enableOTLP bool) error {
 	initOnce.Do(func() {
 		level = zap.NewAtomicLevelAt(parseLevel(logLevel))
 		cores := buildCores(asJSON, enableOTLP)
@@ -101,7 +101,7 @@ func InitWithConfig(cfg LoggerConfig) error {
 
 // buildCores создает слайс cores для zapcore.Tee.
 // Всегда включает stdout core, опционально добавляет OTLP core.
-func buildCores(asJSON bool, enableOTLP bool) []zapcore.Core {
+func buildCores(asJSON, enableOTLP bool) []zapcore.Core {
 	cores := []zapcore.Core{
 		createStdoutCore(asJSON),
 	}

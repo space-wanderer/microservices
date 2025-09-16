@@ -5,44 +5,54 @@ import (
 
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/stats"
 )
 
-// UnaryClientInterceptor создает unary client interceptor для трейсинга gRPC клиентов
-func UnaryClientInterceptor(serviceName string) grpc.UnaryClientInterceptor {
-	return otelgrpc.UnaryClientInterceptor(
+// NewClientStatsHandler создает stats handler для трейсинга gRPC клиентов
+func NewClientStatsHandler(serviceName string) stats.Handler {
+	return otelgrpc.NewClientHandler(
 		otelgrpc.WithTracerProvider(otel.GetTracerProvider()),
 		otelgrpc.WithPropagators(otel.GetTextMapPropagator()),
 	)
+}
+
+// NewServerStatsHandler создает stats handler для трейсинга gRPC серверов
+func NewServerStatsHandler(serviceName string) stats.Handler {
+	return otelgrpc.NewServerHandler(
+		otelgrpc.WithTracerProvider(otel.GetTracerProvider()),
+		otelgrpc.WithPropagators(otel.GetTextMapPropagator()),
+	)
+}
+
+// UnaryClientInterceptor создает unary client interceptor для трейсинга gRPC клиентов
+// Deprecated: используйте NewClientStatsHandler с grpc.WithStatsHandler
+func UnaryClientInterceptor(serviceName string) grpc.UnaryClientInterceptor {
+	// Возвращаем простой interceptor, который не делает ничего
+	// В новой версии рекомендуется использовать stats.Handler
+	return func(
+		ctx context.Context,
+		method string,
+		req, reply interface{},
+		cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker,
+		opts ...grpc.CallOption,
+	) error {
+		return invoker(ctx, method, req, reply, cc, opts...)
+	}
 }
 
 // UnaryServerInterceptor создает unary server interceptor для трейсинга gRPC серверов
+// Deprecated: используйте NewServerStatsHandler с grpc.StatsHandler
 func UnaryServerInterceptor(serviceName string) grpc.UnaryServerInterceptor {
-	return otelgrpc.UnaryServerInterceptor(
-		otelgrpc.WithTracerProvider(otel.GetTracerProvider()),
-		otelgrpc.WithPropagators(otel.GetTextMapPropagator()),
-	)
-}
-
-// StreamClientInterceptor создает stream client interceptor для трейсинга gRPC клиентов
-func StreamClientInterceptor(serviceName string) grpc.StreamClientInterceptor {
-	return otelgrpc.StreamClientInterceptor(
-		otelgrpc.WithTracerProvider(otel.GetTracerProvider()),
-		otelgrpc.WithPropagators(otel.GetTextMapPropagator()),
-	)
-}
-
-// StreamServerInterceptor создает stream server interceptor для трейсинга gRPC серверов
-func StreamServerInterceptor(serviceName string) grpc.StreamServerInterceptor {
-	return otelgrpc.StreamServerInterceptor(
-		otelgrpc.WithTracerProvider(otel.GetTracerProvider()),
-		otelgrpc.WithPropagators(otel.GetTextMapPropagator()),
-	)
-}
-
-// StartSpan создает новый span с указанным именем
-func StartSpan(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
-	tracer := otel.Tracer("microservices")
-	return tracer.Start(ctx, name, opts...)
+	// Возвращаем простой interceptor, который не делает ничего
+	// В новой версии рекомендуется использовать stats.Handler
+	return func(
+		ctx context.Context,
+		req interface{},
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (interface{}, error) {
+		return handler(ctx, req)
+	}
 }

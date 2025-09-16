@@ -7,6 +7,12 @@ import (
 	"syscall"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+
 	"github.com/space-wanderer/microservices/order/internal/app"
 	"github.com/space-wanderer/microservices/order/internal/config"
 	"github.com/space-wanderer/microservices/platform/pkg/closer"
@@ -20,6 +26,36 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
+
+	// Инициализируем OpenTelemetry для отправки метрик в OTEL Collector
+	ctx := context.Background()
+
+	// Создаем ресурс с информацией о сервисе
+	res, err := resource.New(ctx,
+		resource.WithAttributes(
+			semconv.ServiceName("order-service"),
+			semconv.ServiceVersion("1.0.0"),
+		),
+	)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create resource: %v", err))
+	}
+
+	// Создаем OTLP exporter для отправки метрик в OTEL Collector
+	exporter, err := otlpmetricgrpc.New(ctx,
+		otlpmetricgrpc.WithEndpoint("localhost:4317"),
+		otlpmetricgrpc.WithInsecure(),
+	)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create OTLP exporter: %v", err))
+	}
+
+	// Настраиваем OpenTelemetry meter provider
+	meterProvider := metric.NewMeterProvider(
+		metric.WithResource(res),
+		metric.WithReader(metric.NewPeriodicReader(exporter)),
+	)
+	otel.SetMeterProvider(meterProvider)
 
 	appCtx, appCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer appCancel()

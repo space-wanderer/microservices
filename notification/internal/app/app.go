@@ -62,7 +62,7 @@ func (app *App) Run(ctx context.Context) error {
 	return nil
 }
 
-func (app *App) initLogger(ctx context.Context) error {
+func (app *App) initLogger(_ context.Context) error {
 	// Инициализируем логгер с новой конфигурацией
 	return logger.InitWithConfig(config.AppConfig().Logger)
 }

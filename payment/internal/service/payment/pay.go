@@ -14,7 +14,7 @@ import (
 func (s *Service) PayOrder(ctx context.Context, req model.Pay) (string, error) {
 	// ТРЕЙСИНГ: продолжаем трейс из OrderService
 	tracer := otel.Tracer("payment-service")
-	ctx, span := tracer.Start(ctx, "ProcessPayment")
+	_, span := tracer.Start(ctx, "ProcessPayment")
 	defer span.End()
 
 	// Добавляем атрибуты к span

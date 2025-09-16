@@ -20,16 +20,16 @@ scrape_configs:
     metrics_path: /metrics
     scrape_interval: 5s
 
-  # Собираем метрики Order Service
+  # Собираем метрики Order Service (локально запущенный)
   - job_name: "order-service"
     static_configs:
-      - targets: [ "order:8080" ]
+      - targets: [ "host.docker.internal:8080" ]
     metrics_path: /metrics
     scrape_interval: 5s
 
-  # Собираем метрики Assembly Service
+  # Собираем метрики Assembly Service (локально запущенный)
   - job_name: "assembly-service"
     static_configs:
-      - targets: [ "assembly:8081" ]
+      - targets: [ "host.docker.internal:8081" ]
     metrics_path: /metrics
     scrape_interval: 5s

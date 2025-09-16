@@ -2,12 +2,14 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
 	"github.com/space-wanderer/microservices/assembly/internal/config"
@@ -98,7 +100,7 @@ func (a *App) initCloser(ctx context.Context) error {
 }
 
 func (a *App) initListener(ctx context.Context) error {
-	listener, err := net.Listen("tcp", ":8081")
+	listener, err := net.Listen("tcp", "localhost:8081")
 	if err != nil {
 		return err
 	}
@@ -121,18 +123,13 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 	r.Use(middleware.Timeout(10 * time.Second))
 
 	// Добавляем endpoint для метрик
-	r.Get("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		// Здесь будет обработчик метрик Prometheus
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("# Metrics endpoint - будет реализован с Prometheus exporter\n"))
-	})
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
 	// Добавляем health check endpoint
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"healthy"}`))
+		_, _ = fmt.Fprint(w, `{"status":"healthy"}`)
 	})
 
 	a.apiServer = &http.Server{

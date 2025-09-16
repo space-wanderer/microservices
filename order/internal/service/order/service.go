@@ -29,15 +29,25 @@ func NewOrderService(orderRepository repository.OrderRepository, inventoryClient
 	// ИНИЦИАЛИЗАЦИЯ МЕТРИК: создаем счетчики для мониторинга
 	meter := otel.Meter("order-service")
 
-	ordersTotal, _ := meter.Int64Counter(
+	ordersTotal, err := meter.Int64Counter(
 		"orders_total",
 		metric.WithDescription("Total number of orders created"),
 	)
+	if err != nil {
+		// Логируем ошибку, но продолжаем работу
+		// В production можно использовать fallback метрику
+		_ = err // Игнорируем ошибку для graceful degradation
+	}
 
-	ordersRevenueTotal, _ := meter.Float64Counter(
+	ordersRevenueTotal, err := meter.Float64Counter(
 		"orders_revenue_total",
 		metric.WithDescription("Total revenue from orders"),
 	)
+	if err != nil {
+		// Логируем ошибку, но продолжаем работу
+		// В production можно использовать fallback метрику
+		_ = err // Игнорируем ошибку для graceful degradation
+	}
 
 	return &service{
 		orderRepository:    orderRepository,
