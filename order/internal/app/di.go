@@ -28,6 +28,7 @@ import (
 	"github.com/space-wanderer/microservices/platform/pkg/logger"
 	"github.com/space-wanderer/microservices/platform/pkg/middleware/http"
 	migrator "github.com/space-wanderer/microservices/platform/pkg/migrator/pg"
+	"github.com/space-wanderer/microservices/platform/pkg/tracing"
 	order_v1 "github.com/space-wanderer/microservices/shared/pkg/api/order/v1"
 	authV1 "github.com/space-wanderer/microservices/shared/pkg/proto/auth/v1"
 	inventory_v1 "github.com/space-wanderer/microservices/shared/pkg/proto/inventory/v1"
@@ -132,6 +133,7 @@ func (d *diContainer) InventoryClient(ctx context.Context) inventory_v1.Inventor
 			conn, err := grpc.NewClient(
 				config.AppConfig().OrderInventoryGRPC.Address(),
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithUnaryInterceptor(tracing.UnaryClientInterceptor("order-service")),
 			)
 			if err != nil {
 				log.Printf("❌ Ошибка подключения к inventory service: %v", err)
@@ -150,6 +152,7 @@ func (d *diContainer) PaymentClient(ctx context.Context) payment_v1.PaymentServi
 			conn, err := grpc.NewClient(
 				config.AppConfig().OrderPaymentGRPC.Address(),
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithUnaryInterceptor(tracing.UnaryClientInterceptor("order-service")),
 			)
 			if err != nil {
 				log.Printf("❌ Ошибка подключения к payment service: %v", err)

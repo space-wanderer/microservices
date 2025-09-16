@@ -15,6 +15,7 @@ import (
 	"github.com/space-wanderer/microservices/platform/pkg/closer"
 	"github.com/space-wanderer/microservices/platform/pkg/grpc/health"
 	"github.com/space-wanderer/microservices/platform/pkg/logger"
+	"github.com/space-wanderer/microservices/platform/pkg/tracing"
 	paymentV1 "github.com/space-wanderer/microservices/shared/pkg/proto/payment/v1"
 )
 
@@ -96,7 +97,10 @@ func (a *App) initListener(_ context.Context) error {
 }
 
 func (a *App) initGRPCServer(ctx context.Context) error {
-	a.grpcServer = grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
+	a.grpcServer = grpc.NewServer(
+		grpc.Creds(insecure.NewCredentials()),
+		grpc.UnaryInterceptor(tracing.UnaryServerInterceptor("payment-service")),
+	)
 	closer.AddNamed("GRPC Server", func(ctx context.Context) error {
 		a.grpcServer.GracefulStop()
 		return nil

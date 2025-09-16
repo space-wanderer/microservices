@@ -134,6 +134,25 @@ exporters:
     # timeout: 90s                  # таймаут HTTP запроса
     # compression: gzip             # сжатие данных
 
+  # PROMETHEUS EXPORTER - отправка метрик в Prometheus
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: "otelcol"
+    const_labels:
+      environment: "dev"
+    send_timestamps: true
+
+  # JAEGER EXPORTER - отправка трейсов в Jaeger
+  otlp/jaeger:
+    # ENDPOINT: адрес Jaeger collector для приема трейсов
+    endpoint: jaeger:4317
+    
+    # TLS НАСТРОЙКИ: конфигурация безопасного соединения
+    tls:
+      # INSECURE: отключаем проверку сертификатов для локальной разработки
+      # В production ОБЯЗАТЕЛЬНО включить проверку сертификатов
+      insecure: true
+
 # ===================================================================
 # EXTENSIONS - ДОПОЛНИТЕЛЬНЫЕ КОМПОНЕНТЫ
 # ===================================================================
@@ -196,6 +215,44 @@ service:
       # Batch Processor (group 1000 records, max 5s)  
       #       ↓
       # Elasticsearch Exporter (send to easy-logs index)
+
+    # METRICS PIPELINE: обработка метрик
+    metrics:
+      # ПОСЛЕДОВАТЕЛЬНОСТЬ ОБРАБОТКИ: receivers → processors → exporters
+      
+      receivers: [otlp]                    # принимаем метрики от OTLP gRPC
+      processors: [resource, batch]       # обогащаем метаданными, группируем в батчи
+      exporters: [prometheus]             # отправляем в Prometheus
+      
+      # FLOW ДИАГРАММА:
+      # Go App (OTLP gRPC) 
+      #       ↓
+      # OTLP Receiver (port 4317)
+      #       ↓  
+      # Resource Processor (add service.name, deployment.environment)
+      #       ↓
+      # Batch Processor (group metrics, max 5s)  
+      #       ↓
+      # Prometheus Exporter (expose on port 8889)
+
+    # TRACES PIPELINE: обработка трейсов
+    traces:
+      # ПОСЛЕДОВАТЕЛЬНОСТЬ ОБРАБОТКИ: receivers → processors → exporters
+      
+      receivers: [otlp]                    # принимаем трейсы от OTLP gRPC
+      processors: [resource, batch]       # обогащаем метаданными, группируем в батчи
+      exporters: [otlp/jaeger]            # отправляем в Jaeger
+      
+      # FLOW ДИАГРАММА:
+      # Go App (OTLP gRPC) 
+      #       ↓
+      # OTLP Receiver (port 4317)
+      #       ↓  
+      # Resource Processor (add service.name, deployment.environment)
+      #       ↓
+      # Batch Processor (group traces, max 5s)  
+      #       ↓
+      # Jaeger Exporter (send to jaeger:4317)
 
 # ===================================================================
 # ДОПОЛНИТЕЛЬНЫЕ ВОЗМОЖНОСТИ КОНФИГУРАЦИИ

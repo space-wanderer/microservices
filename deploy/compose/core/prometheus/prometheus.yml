@@ -13,6 +13,13 @@ scrape_configs:
     static_configs:
       - targets: [ "otel-collector:8888" ]
 
+  # Собираем метрики от приложений через OpenTelemetry Collector
+  - job_name: "otel-collector-metrics"
+    static_configs:
+      - targets: [ "otel-collector:8889" ]
+    metrics_path: /metrics
+    scrape_interval: 5s
+
   # Собираем метрики Order Service
   - job_name: "order-service"
     static_configs:
