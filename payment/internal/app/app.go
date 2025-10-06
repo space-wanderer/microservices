@@ -15,6 +15,7 @@ import (
 	"github.com/space-wanderer/microservices/platform/pkg/closer"
 	"github.com/space-wanderer/microservices/platform/pkg/grpc/health"
 	"github.com/space-wanderer/microservices/platform/pkg/logger"
+	"github.com/space-wanderer/microservices/platform/pkg/tracing"
 	paymentV1 "github.com/space-wanderer/microservices/shared/pkg/proto/payment/v1"
 )
 
@@ -64,14 +65,12 @@ func (a *App) initDi(ctx context.Context) error {
 }
 
 func (a *App) initLogger(ctx context.Context) error {
-	return logger.Init(
-		config.AppConfig().Logger.Level(),
-		config.AppConfig().Logger.AsJson(),
-	)
+	// Инициализируем логгер с новой конфигурацией
+	return logger.InitWithConfig(config.AppConfig().Logger)
 }
 
 func (a *App) initCloser(_ context.Context) error {
-	closer.SetLogger(logger.Logger())
+	closer.SetLogger(&logger.NoopLogger{})
 
 	return nil
 }
@@ -98,7 +97,10 @@ func (a *App) initListener(_ context.Context) error {
 }
 
 func (a *App) initGRPCServer(ctx context.Context) error {
-	a.grpcServer = grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
+	a.grpcServer = grpc.NewServer(
+		grpc.Creds(insecure.NewCredentials()),
+		grpc.StatsHandler(tracing.NewServerStatsHandler("payment-service")),
+	)
 	closer.AddNamed("GRPC Server", func(ctx context.Context) error {
 		a.grpcServer.GracefulStop()
 		return nil

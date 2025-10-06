@@ -6,7 +6,6 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/space-wanderer/microservices/iam/internal/config/env"
-	"github.com/space-wanderer/microservices/platform/pkg/logger"
 )
 
 var appConfig *config
@@ -30,10 +29,7 @@ func Load(path ...string) error {
 		return err
 	}
 
-	// Инициализируем логгер
-	if err := logger.Init(loggerCfg.Level(), loggerCfg.AsJSON()); err != nil {
-		return err
-	}
+	// Логгер инициализируется в app.go
 
 	postgresCfg, err := env.NewPostgresConfig()
 	if err != nil {

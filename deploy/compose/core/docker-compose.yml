@@ -128,13 +128,393 @@ services: # Раздел, в котором описываются все кон
       - microservices-net
       # Подключаем контейнер к общей сети, в которой живут все сервисы микросервисной архитектуры
 
-volumes: # Раздел с определением томов
-  kafka_data: # Именованный том для хранения данных Kafka
-  # Docker сам управляет этим хранилищем, данные сохраняются между перезапусками контейнеров.
+  elasticsearch: # Сервис Elasticsearch для хранения и поиска логов
+    image: elasticsearch:7.17.15
+    
+    # Имя контейнера для удобства обращения из других контейнеров
+    container_name: elasticsearch
+    
+    environment:
+      # РЕЖИМ ОДНОГО УЗЛА: Elasticsearch запускается как single-node кластер
+      # В production обычно используется multi-node кластер для отказоустойчивости
+      - discovery.type=single-node
+      
+      # ОТКЛЮЧЕНИЕ БЕЗОПАСНОСТИ: упрощает настройку для обучения
+      # В production ОБЯЗАТЕЛЬНО включать аутентификацию и HTTPS
+      - xpack.security.enabled=false
+      
+      # ИМЯ КЛАСТЕРА: логическое имя для группировки узлов
+      - cluster.name=es-docker-cluster
+    
+    volumes:
+      # ПОСТОЯННОЕ ХРАНЕНИЕ: данные Elasticsearch сохраняются на диске
+      # Если контейнер перезапустится, данные не потеряются
+      - es_data:/usr/share/elasticsearch/data
+    
+    ports:
+      # ПОРТ 9200: REST API для взаимодействия с Elasticsearch
+      # Через этот порт OTel Collector отправляет логи
+      # Также можно делать запросы напрямую: curl localhost:9200/_search
+      - "9200:9200"
+    
+    healthcheck:
+      # ПРОВЕРКА ЗДОРОВЬЯ: Docker проверяет, что Elasticsearch готов к работе
+      # Проверяем статус кластера через REST API
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health >/dev/null"]
+      interval: 10s        # проверяем каждые 10 секунд
+      timeout: 5s          # ждем ответ максимум 5 секунд
+      retries: 20          # максимум 20 попыток (итого ~3 минуты)
+      start_period: 30s    # ждем 30 секунд перед первой проверкой
+    
+    # АВТОМАТИЧЕСКИЙ ПЕРЕЗАПУСК: если контейнер упадет, Docker его перезапустит
+    restart: unless-stopped
+    
+    networks:
+      # ПОДКЛЮЧЕНИЕ К СЕТИ: все сервисы в одной сети могут общаться по имени
+      - microservices-net
+
+  # ===================================================================
+  # KIBANA - ВЕБ-ИНТЕРФЕЙС ДЛЯ ПРОСМОТРА ЛОГОВ
+  # ===================================================================
+  # 
+  # Kibana предоставляет веб-интерфейс для поиска, фильтрации и 
+  # визуализации логов, хранящихся в Elasticsearch.
+  
+  kibana:
+    # Официальный образ Kibana той же версии, что и Elasticsearch
+    # Важно: версии Kibana и Elasticsearch должны совпадать!
+    image: kibana:7.17.15
+    
+    container_name: kibana
+    
+    environment:
+      # ПОДКЛЮЧЕНИЕ К ELASTICSEARCH: указываем адрес Elasticsearch
+      # Используем имя контейнера 'elasticsearch' как DNS имя
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      
+      # ОТКЛЮЧЕНИЕ БЕЗОПАСНОСТИ: соответствует настройкам Elasticsearch
+      - XPACK_SECURITY_ENABLED=false
+    
+    depends_on:
+      # ЗАВИСИМОСТЬ ОТ ELASTICSEARCH: Kibana запустится только после того,
+      # как Elasticsearch будет healthy (пройдет healthcheck)
+      elasticsearch:
+        condition: service_healthy
+    
+    ports:
+      # ПОРТ 5601: веб-интерфейс Kibana
+      # Открываем в браузере http://localhost:5601 для просмотра логов
+      - "5601:5601"
+    
+    healthcheck:
+      # ПРОВЕРКА ЗДОРОВЬЯ KIBANA: проверяем готовность веб-интерфейса
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5601/api/status >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+  # ===================================================================
+  # KIBANA-INIT - АВТОМАТИЧЕСКАЯ НАСТРОЙКА DATA VIEW
+  # ===================================================================
+  # 
+  # Этот служебный контейнер автоматически создает Data View в Kibana
+  # и настраивает его как default. Без Data View нельзя просматривать
+  # логи в Kibana Discover.
+  
+  kibana-init:
+    # Легкий Alpine Linux образ для выполнения скриптов инициализации
+    image: alpine:3.20
+    
+    container_name: kibana-init
+    
+    depends_on:
+      # ЖДЕМ ГОТОВНОСТИ KIBANA: запускаемся только после успешного healthcheck
+      kibana:
+        condition: service_healthy
+    
+    # КОМАНДА ИНИЦИАЛИЗАЦИИ: выполняется один раз при запуске контейнера
+    command: 
+      - sh      # запускаем shell
+      - -c      # выполняем команду из строки
+      - |       # многострочная команда (YAML literal block)
+        set -e  # останавливаем скрипт при первой ошибке
+        
+        # УСТАНОВКА УТИЛИТ: curl для HTTP запросов, jq для обработки JSON
+        echo "Installing curl and jq..."
+        apk add --no-cache curl jq >/dev/null 2>&1
+        
+        # ОЖИДАНИЕ ГОТОВНОСТИ KIBANA: дополнительная проверка доступности API
+        echo "Waiting for Kibana..."
+        for i in $$(seq 1 60); do  # максимум 60 попыток (2 минуты)
+          if curl -sSf http://kibana:5601/api/status >/dev/null; then break; fi
+          sleep 2  # ждем 2 секунды между попытками
+        done
+        
+        # СОЗДАНИЕ DATA VIEW: настраиваем Kibana для просмотра логов
+        echo "Creating Data View easy-logs* ..."
+        # Создаем Data View через Kibana API
+        RESPONSE=$$(curl -sS -X POST http://kibana:5601/api/data_views/data_view \
+          -H "kbn-xsrf: true" \
+          -H "Content-Type: application/json" \
+          --data '{"data_view":{"title":"easy-logs*","name":"Easy Logs","timeFieldName":"@timestamp","allowNoIndex":true},"override":true}' || echo "{}")
+        
+        # ИЗВЛЕЧЕНИЕ ID DATA VIEW: парсим JSON ответ для получения ID
+        echo "Response: $$RESPONSE"
+        DATA_VIEW_ID=$$(echo "$$RESPONSE" | jq -r ".data_view.id // empty")
+        echo "Data View ID: $$DATA_VIEW_ID"
+        
+        # УСТАНОВКА КАК DEFAULT DATA VIEW: чтобы Kibana автоматически использовал его
+        if [ -n "$$DATA_VIEW_ID" ]; then
+          echo "Setting as default data view..."
+          curl -sS -X POST http://kibana:5601/api/data_views/default \
+            -H "kbn-xsrf: true" \
+            -H "Content-Type: application/json" \
+            -d "{\"data_view_id\": \"$$DATA_VIEW_ID\", \"force\": true}" || true
+          echo "Default data view set successfully."
+        else
+          echo "Failed to get data view ID"
+        fi
+        echo "Done."
+    
+    networks:
+      - microservices-net
+    
+    # НЕ ПЕРЕЗАПУСКАТЬ: это одноразовая задача инициализации
+    restart: "no"
+
+  # ===================================================================
+  # OPENTELEMETRY COLLECTOR - ЦЕНТРАЛЬНЫЙ АГЕНТ СБОРА ЛОГОВ
+  # ===================================================================
+  # 
+  # OpenTelemetry Collector принимает логи от приложений, обрабатывает их
+  # (добавляет метаданные, группирует в батчи) и отправляет в Elasticsearch.
+  # Это промежуточный слой между приложениями и системой хранения.
+  
+  otel-collector:
+    # Официальный образ OTel Collector с дополнительными компонентами
+    # contrib версия включает экспортеры для разных систем (Elasticsearch, Prometheus, etc.)
+    image: otel/opentelemetry-collector-contrib:0.123.0
+    
+    container_name: otel-collector
+    
+    # КОМАНДА ЗАПУСКА: указываем путь к файлу конфигурации
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    
+    volumes:
+      # МОНТИРОВАНИЕ КОНФИГУРАЦИИ: подключаем локальный файл в контейнер
+      # Изменения в otel-collector-config.yaml требуют перезапуска контейнера
+      - ./otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    
+    ports:
+      # ПОРТ 8888: метрики самого коллектора (Prometheus формат)
+      # Можно мониторить производительность коллектора: curl localhost:8888/metrics
+      - "8888:8888"
+      
+      # ПОРТ 8889: метрики от приложений (Prometheus формат)
+      # Prometheus собирает метрики от приложений через этот порт
+      - "8889:8889"
+      
+      # ПОРТ 4317: OTLP gRPC endpoint для приема логов от приложений
+      # Go приложения отправляют логи именно на этот порт
+      - "4317:4317"
+      
+      # ПОРТ 4318: OTLP HTTP endpoint для приема логов от приложений
+      # HTTP клиенты отправляют логи на этот порт
+      - "4318:4318"
+    
+    restart: unless-stopped
+    networks:
+      - microservices-net
+    
+    depends_on:
+      # ЗАВИСИМОСТЬ ОТ ELASTICSEARCH: коллектор отправляет данные в Elasticsearch,
+      # поэтому должен запуститься после готовности Elasticsearch
+      elasticsearch:
+        condition: service_healthy
+    
+    # ПРИМЕЧАНИЕ: нет healthcheck, так как distroless образ не содержит curl/wget
+    # Коллектор считается здоровым, если процесс запустился
+
+  # ===================================================================
+  # PROMETHEUS - СБОР И ХРАНЕНИЕ МЕТРИК
+  # ===================================================================
+  # 
+  # Prometheus собирает метрики от всех сервисов и хранит их для анализа.
+  # Метрики доступны через REST API и используются Grafana для визуализации.
+  
+  prometheus:
+    # Официальный образ Prometheus - система мониторинга и алертинга
+    image: prom/prometheus:v3.3.1
+    
+    container_name: prometheus
+    
+    # КОМАНДА ЗАПУСКА: указываем путь к файлу конфигурации
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    
+    volumes:
+      # МОНТИРОВАНИЕ КОНФИГУРАЦИИ: подключаем локальный файл в контейнер
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      # ПОСТОЯННОЕ ХРАНЕНИЕ: данные Prometheus сохраняются на диске
+      - prometheus_data:/prometheus
+    
+    ports:
+      # ПОРТ 9090: веб-интерфейс Prometheus
+      # Открываем в браузере http://localhost:9090 для просмотра метрик
+      - "9090:9090"
+    
+    healthcheck:
+      # ПРОВЕРКА ЗДОРОВЬЯ: проверяем готовность веб-интерфейса
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+  # ===================================================================
+  # GRAFANA - ВИЗУАЛИЗАЦИЯ МЕТРИК
+  # ===================================================================
+  # 
+  # Grafana предоставляет веб-интерфейс для создания дашбордов и графиков
+  # на основе метрик, собранных Prometheus.
+  
+  grafana:
+    # Официальный образ Grafana - платформа для визуализации данных
+    image: grafana/grafana:12.0.0
+    
+    container_name: grafana
+    
+    environment:
+      # НАСТРОЙКИ GRAFANA: базовая конфигурация
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      
+      # АВТОМАТИЧЕСКОЕ ПОДКЛЮЧЕНИЕ К PROMETHEUS: настраиваем datasource
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    
+    volumes:
+      # ПОСТОЯННОЕ ХРАНЕНИЕ: настройки и дашборды Grafana
+      - grafana_data:/var/lib/grafana
+      # ПРЕДУСТАНОВЛЕННЫЕ ДАШБОРДЫ: автоматическая настройка
+      - ./grafana/grafana_dashboard.json:/etc/grafana/provisioning/dashboards/microservices.json
+    
+    ports:
+      # ПОРТ 3000: веб-интерфейс Grafana
+      # Открываем в браузере http://localhost:3000 (admin/admin)
+      - "3000:3000"
+    
+    depends_on:
+      # ЗАВИСИМОСТЬ ОТ PROMETHEUS: Grafana подключается к Prometheus
+      prometheus:
+        condition: service_healthy
+    
+    healthcheck:
+      # ПРОВЕРКА ЗДОРОВЬЯ: проверяем готовность веб-интерфейса
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+  # ===================================================================
+  # JAEGER - РАСПРЕДЕЛЕННЫЙ ТРЕЙСИНГ
+  # ===================================================================
+  # 
+  # Jaeger предоставляет веб-интерфейс для просмотра распределенных трейсов
+  # и анализа производительности микросервисов.
+  
+  jaeger:
+    # Официальный образ Jaeger - система распределенного трейсинга
+    image: jaegertracing/jaeger:2.6.0
+    
+    container_name: jaeger
+    
+    environment:
+      # РЕЖИМ РАБОТЫ: all-in-one для упрощения развертывания
+      # В production обычно используется отдельные компоненты (collector, query, etc.)
+      - SPAN_STORAGE_TYPE=memory
+      
+      # НАСТРОЙКИ ПАМЯТИ: ограничиваем использование памяти
+      - MEMORY_MAX_TRACES=50000
+      
+      # ОТКЛЮЧЕНИЕ БЕЗОПАСНОСТИ: для локальной разработки
+      - COLLECTOR_OTLP_ENABLED=true
+    
+    ports:
+      # ПОРТ 16686: веб-интерфейс Jaeger UI
+      # Открываем в браузере http://localhost:16686 для просмотра трейсов
+      - "16686:16686"
+      
+      # ПОРТ 14250: OTLP gRPC endpoint для приема трейсов от OTEL Collector
+      - "14250:4317"
+      
+      # ПОРТ 14268: OTLP HTTP endpoint для приема трейсов от OTEL Collector
+      - "14268:4318"
+    
+    healthcheck:
+      # ПРОВЕРКА ЗДОРОВЬЯ: проверяем готовность веб-интерфейса
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:16686/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+# ===================================================================
+# VOLUMES - ПОСТОЯННОЕ ХРАНЕНИЕ ДАННЫХ
+# ===================================================================
+# 
+# Docker volumes обеспечивают сохранность данных при перезапуске контейнеров
+
+volumes:
+  # ДАННЫЕ KAFKA: логи и сообщения Kafka
+  kafka_data:
+  
+  # ДАННЫЕ ELASTICSEARCH: индексы, логи, метаданные
+  # Данные сохраняются на диске хоста и не удаляются при docker-compose down
+  es_data:
+  
+  # ДАННЫЕ PROMETHEUS: временные ряды метрик
+  # Данные сохраняются на диске хоста и не удаляются при docker-compose down
+  prometheus_data:
+  
+  # ДАННЫЕ GRAFANA: настройки, дашборды, пользователи
+  # Данные сохраняются на диске хоста и не удаляются при docker-compose down
+  grafana_data:
+
+# ===================================================================
+# NETWORKS - СЕТЕВОЕ ВЗАИМОДЕЙСТВИЕ КОНТЕЙНЕРОВ
+# ===================================================================
+# 
+# Все контейнеры подключены к одной сети для взаимодействия по именам
 
 networks:
   microservices-net:
+    # ИМЯКОНЕЧНОЙ СЕТИ: можно ссылаться из других docker-compose файлов
     name: microservices-net
+    # ВНУТРЕННЯЯ СЕТЬ: создается Docker Compose, не внешняя
     external: false
-    # ВАЖНО: здесь мы создаём сеть с именем microservices-net
-    # Другие docker-compose файлы будут к ней подключаться с external: true
+
+

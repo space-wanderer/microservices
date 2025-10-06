@@ -33,10 +33,17 @@ func (s *service) CreateOrder(ctx context.Context, req model.Order) (model.Order
 		return model.Order{}, fmt.Errorf("ошибка при получении информации о деталях: %w", err)
 	}
 
-	return model.Order{
+	// СОЗДАНИЕ ОТВЕТА: формируем модель заказа
+	createdOrder := model.Order{
 		OrderUUID:  orderUUID,
 		TotalPrice: totalPrice,
-	}, nil
+	}
+
+	// ОБНОВЛЕНИЕ МЕТРИК: инкрементируем счетчики для мониторинга
+	s.ordersTotal.Add(ctx, 1)
+	s.ordersRevenueTotal.Add(ctx, float64(totalPrice))
+
+	return createdOrder, nil
 }
 
 func (s *service) calculateOrderPrice(ctx context.Context, partUuids []uuid.UUID) (float32, error) {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 
 	"github.com/space-wanderer/microservices/order/internal/config"
@@ -73,14 +74,12 @@ func (a *App) initDi(ctx context.Context) error {
 }
 
 func (a *App) initLogger(ctx context.Context) error {
-	return logger.Init(
-		config.AppConfig().Logger.Level(),
-		config.AppConfig().Logger.AsJson(),
-	)
+	// Инициализируем логгер с новой конфигурацией
+	return logger.InitWithConfig(config.AppConfig().Logger)
 }
 
 func (a *App) initCloser(ctx context.Context) error {
-	closer.SetLogger(logger.Logger())
+	closer.SetLogger(&logger.NoopLogger{})
 
 	return nil
 }
@@ -118,14 +117,22 @@ func (a *App) initHTTPServer(ctx context.Context) error {
 	// Инициализируем роутер Chi
 	r := chi.NewRouter()
 
-	// Добавляем middleware
+	// Добавляем базовые middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(10 * time.Second))
-	r.Use(authMiddleware.Handle)
 
-	// Монтируем обработчики OpenAPI
-	r.Mount("/", s)
+	// Добавляем endpoint для метрик (без аутентификации)
+	// Метрики собираются через OpenTelemetry Collector
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
+
+	// Создаем подроутер для API с аутентификацией
+	apiRouter := chi.NewRouter()
+	apiRouter.Use(authMiddleware.Handle)
+	apiRouter.Mount("/", s)
+
+	// Монтируем API роутер
+	r.Mount("/", apiRouter)
 
 	a.apiServer = &http.Server{
 		Addr:              config.AppConfig().OrderHTTP.Address(),

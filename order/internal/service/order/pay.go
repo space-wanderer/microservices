@@ -5,14 +5,29 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/space-wanderer/microservices/order/internal/converter"
 	"github.com/space-wanderer/microservices/order/internal/model"
 )
 
 func (s *service) PayOrder(ctx context.Context, orderUUID, userUUID string, paymentMethod model.PaymentMethod) (model.Order, error) {
+	// ТРЕЙСИНГ: создаем span для операции оплаты
+	tracer := otel.Tracer("order-service")
+	ctx, span := tracer.Start(ctx, "PayOrder")
+	defer span.End()
+
+	// Добавляем атрибуты к span
+	span.SetAttributes(
+		attribute.String("order.id", orderUUID),
+		attribute.String("user.id", userUUID),
+		attribute.String("payment.method", string(paymentMethod)),
+	)
+
 	repoOrder, err := s.orderRepository.GetOrderByUuid(ctx, orderUUID)
 	if err != nil {
+		span.RecordError(err)
 		return model.Order{}, model.ErrOrderNotFound
 	}
 
@@ -21,14 +36,23 @@ func (s *service) PayOrder(ctx context.Context, orderUUID, userUUID string, paym
 
 	// Проверяем статус заказа
 	if order.Status != model.StatusPendingPayment {
+		span.SetAttributes(attribute.String("order.status", string(order.Status)))
+		span.RecordError(model.ErrOrderAlreadyPaid)
 		return model.Order{}, model.ErrOrderAlreadyPaid
 	}
 
 	// Обрабатываем платеж через PaymentService
 	transactionUUID, err := s.paymentClient.PayOrder(ctx, orderUUID, userUUID, string(paymentMethod))
 	if err != nil {
+		span.RecordError(err)
 		return model.Order{}, fmt.Errorf("payment processing failed: %w", err)
 	}
+
+	// Добавляем информацию о транзакции в span
+	span.SetAttributes(
+		attribute.String("transaction.id", transactionUUID),
+		attribute.String("payment.status", "success"),
+	)
 
 	// Обновляем заказ после успешного платежа
 	order.Status = model.StatusPaid
@@ -39,6 +63,7 @@ func (s *service) PayOrder(ctx context.Context, orderUUID, userUUID string, paym
 	repoOrder = converter.ConvertModelOrderToRepoOrder(order)
 	err = s.orderRepository.UpdateOrder(ctx, repoOrder)
 	if err != nil {
+		span.RecordError(err)
 		return model.Order{}, fmt.Errorf("failed to update order: %w", err)
 	}
 
@@ -54,6 +79,12 @@ func (s *service) PayOrder(ctx context.Context, orderUUID, userUUID string, paym
 	// Отправляем событие OrderPaid в Kafka
 	// nolint:gosec // Игнорируем ошибку Kafka producer для упрощения
 	_ = s.orderPaidProducer.ProduceOrderPaidEvent(ctx, orderPaidEvent)
+
+	// Добавляем финальные атрибуты в span
+	span.SetAttributes(
+		attribute.String("order.status.final", string(order.Status)),
+		attribute.String("kafka.event.id", orderPaidEvent.EventUUID),
+	)
 	// TODO: Добавить proper error handling и logging
 
 	return *order, nil

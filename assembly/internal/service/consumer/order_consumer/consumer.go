@@ -3,6 +3,8 @@ package order_consumer
 import (
 	"context"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 
 	kafkaConverter "github.com/space-wanderer/microservices/assembly/internal/converter/kafka"
@@ -15,13 +17,31 @@ type service struct {
 	assemblyRecodeConsumer kafka.Consumer
 	assemblyRecodedDecoder kafkaConverter.AssemblyRecodedDecoder
 	producerService        assemblyService.ProducerService
+
+	// МЕТРИКА: гистограмма длительности сборки
+	assemblyDuration metric.Float64Histogram
 }
 
 func NewService(assemblyRecodeConsumer kafka.Consumer, assemblyRecodedDecoder kafkaConverter.AssemblyRecodedDecoder, producerService assemblyService.ProducerService) *service {
+	// ИНИЦИАЛИЗАЦИЯ МЕТРИКИ: создаем гистограмму для измерения длительности сборки
+	meter := otel.Meter("assembly-service")
+
+	assemblyDuration, err := meter.Float64Histogram(
+		"assembly_duration_seconds",
+		metric.WithDescription("Duration of assembly operations"),
+		metric.WithUnit("s"),
+	)
+	if err != nil {
+		// Логируем ошибку, но продолжаем работу
+		// В production можно использовать fallback метрику
+		_ = err // Игнорируем ошибку для graceful degradation
+	}
+
 	return &service{
 		assemblyRecodeConsumer: assemblyRecodeConsumer,
 		assemblyRecodedDecoder: assemblyRecodedDecoder,
 		producerService:        producerService,
+		assemblyDuration:       assemblyDuration,
 	}
 }
 

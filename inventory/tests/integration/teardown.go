@@ -9,7 +9,7 @@ import (
 )
 
 func teardownTestEnvironment(ctx context.Context, env *TestEnvironment) {
-	log := logger.Logger()
+	log := &logger.NoopLogger{}
 	log.Info(ctx, "Освобождение ресурсов тестового окружения...")
 
 	cleanupTestEnvironment(ctx, env)

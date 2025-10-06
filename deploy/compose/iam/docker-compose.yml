@@ -6,6 +6,12 @@ services: # Раздел, в котором описываются все кон
 
     env_file:
       - .env
+    
+    environment:
+      # Переменные для автоматического создания базы данных
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
     volumes:
       - postgres_iam_data:/var/lib/postgresql/data

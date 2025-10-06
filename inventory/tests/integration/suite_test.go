@@ -31,7 +31,7 @@ func TestIntegration(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	err := logger.Init(loggerLevelValue, true)
+	err := logger.Init(loggerLevelValue, true, false)
 	if err != nil {
 		panic(fmt.Sprintf("не удалось инициализировать логгер: %v", err))
 	}
@@ -41,7 +41,7 @@ var _ = BeforeSuite(func() {
 	// Загружаем .env файл и устанавливаем переменные в окружение
 	envVars, err := godotenv.Read(filepath.Join("..", "..", "..", "deploy", "compose", "inventory", ".env"))
 	if err != nil {
-		logger.Fatal(suiteCtx, "Не удалось загрузить .env файл", zap.Error(err))
+		logger.Error(suiteCtx, "Не удалось загрузить .env файл", zap.Error(err))
 	}
 
 	// Устанавливаем переменные в окружение процесса
